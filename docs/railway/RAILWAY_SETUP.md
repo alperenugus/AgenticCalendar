@@ -103,10 +103,10 @@ SPRING_DATASOURCE_PASSWORD=...
 # LangChain4j - FREE options available! See FREE_LLM_SETUP.md
 # Ollama (http://localhost:11434) won't work on Railway - it's for local dev only
 
-# Option 1: Groq (FREE - Recommended! 14,400 requests/day)
+# Option 1: Groq (FREE - Recommended! 100,000 tokens/day)
 LANGCHAIN4J_PROVIDER=groq
 LANGCHAIN4J_GROQ_API_KEY=your-groq-api-key-here
-LANGCHAIN4J_GROQ_MODEL=llama-3.3-70b-versatile
+LANGCHAIN4J_GROQ_MODEL=llama-3.1-8b-instant  # Smaller model to avoid rate limits
 LANGCHAIN4J_GROQ_TEMPERATURE=0.7
 
 # Option 2: Google Gemini (FREE - 1,500 requests/day)

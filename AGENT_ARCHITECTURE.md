@@ -46,7 +46,7 @@ The agent uses the **ReAct (Reasoning and Acting) pattern**, an industry-standar
 
 ### AppointmentToolService
 - LangChain4j tool definitions with `@Tool` annotations
-- Tools: getUser, getAppointmentsByUser, createAppointment, updateAppointment, deleteAppointment
+- Tools: getUser, getAppointmentsByUser, createAppointment, updateAppointment, deleteAppointment, createUser, updateUser, deleteUser
 - Returns JSON strings for LLM parsing
 
 ### ReActParser
@@ -142,7 +142,13 @@ CRITICAL: You MUST follow this pattern exactly:
 
 All tools are defined in `AppointmentToolService.java` using LangChain4j's `@Tool` annotation:
 
+**User Management:**
 - `getUser(firstName?, lastName?, dob?)` - Flexible user search (all parameters optional)
+- `createUser(firstName, lastName, dob, email)` - Create new user in the system
+- `updateUser(userId, firstName?, lastName?, dob?, email?)` - Update existing user (all fields optional)
+- `deleteUser(userId)` - Permanently delete a user
+
+**Appointment Management:**
 - `getAppointmentsByUser(userId)` - Get all appointments for a user
 - `createAppointment(userId, appointmentDateTime, description)` - Create new appointment
 - `updateAppointment(appointmentId, newDateTime)` - Update existing appointment
@@ -156,6 +162,8 @@ The system handles errors gracefully:
 - **Multiple user matches**: LLM prompts user for selection
 - **No results found**: LLM asks for more information
 - **Invalid parameters**: Tool returns error, LLM handles it in next Thought
+- **Rate limit errors**: Graceful handling with user-friendly messages when API rate limits are exceeded
+- **Token limit errors**: Clear messaging when daily token limits are reached
 
 ## Performance
 

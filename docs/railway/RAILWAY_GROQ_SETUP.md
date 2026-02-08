@@ -32,9 +32,11 @@ LANGCHAIN4J_PROVIDER=groq
 # Groq API Key (starts with gsk_...)
 LANGCHAIN4J_GROQ_API_KEY=your-groq-api-key-here
 
-# Groq Model (optional - defaults to llama-3.3-70b-versatile)
-# Note: llama-3.1-70b-versatile was decommissioned, use llama-3.3-70b-versatile instead
-LANGCHAIN4J_GROQ_MODEL=llama-3.3-70b-versatile
+# Groq Model (optional - defaults to llama-3.1-8b-instant)
+# Note: llama-3.1-70b-versatile was decommissioned
+# llama-3.1-8b-instant: Fast, efficient, uses ~10x fewer tokens (recommended to avoid rate limits)
+# llama-3.3-70b-versatile: More capable but uses many more tokens (may hit rate limits)
+LANGCHAIN4J_GROQ_MODEL=llama-3.1-8b-instant
 
 # Temperature (optional - defaults to 0.7)
 LANGCHAIN4J_GROQ_TEMPERATURE=0.7
@@ -105,23 +107,25 @@ Check the backend logs. You should see:
 ```bash
 LANGCHAIN4J_PROVIDER=groq
 LANGCHAIN4J_GROQ_API_KEY=your-groq-api-key-here
-LANGCHAIN4J_GROQ_MODEL=llama-3.3-70b-versatile
+LANGCHAIN4J_GROQ_MODEL=llama-3.1-8b-instant
 LANGCHAIN4J_GROQ_TEMPERATURE=0.7
 ```
 
 **Available Models:**
-- `llama-3.3-70b-versatile` - **Recommended** (current, best quality)
-- `llama-3.1-8b-instant` - Faster, smaller model
+- `llama-3.1-8b-instant` - **Recommended** (fast, efficient, uses ~10x fewer tokens)
+- `llama-3.3-70b-versatile` - More capable but token-heavy (may hit rate limits)
 - `mixtral-8x7b-32768` - Alternative model
 
 **Note**: Replace `your-groq-api-key-here` with your actual API key from https://console.groq.com/keys
 
 ## Free Tier Limits
 
-- **14,400 requests/day** (very generous!)
+- **100,000 tokens/day** (resets daily)
 - **30 requests/minute** rate limit
 - **No credit card required**
 - **No expiration** (as long as within limits)
+
+**Note**: The smaller `llama-3.1-8b-instant` model uses approximately 10x fewer tokens than `llama-3.3-70b-versatile`, making it much less likely to hit daily limits.
 
 ## Still Not Working?
 

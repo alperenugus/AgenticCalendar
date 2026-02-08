@@ -23,12 +23,14 @@ This is a Spring Boot 3.4 application that demonstrates an **agentic AI system**
 - 🤖 **AI-Powered Agent**: Natural language understanding for appointment requests using LangChain4j
 - 🔄 **ReAct Pattern**: Industry-standard reasoning and acting loop
 - 🔍 **Flexible User Search**: Search users with partial information (firstName, lastName, or dob - all optional)
+- 👥 **User Management**: Create, update, and delete users via natural language
 - 🔗 **Tool Chaining**: Automatic chaining of multiple tool calls
 - 📊 **PostgreSQL Persistence**: Robust data storage with JPA
 - 🧪 **Comprehensive Testing**: Unit and integration tests included
 - 🔒 **Input Validation**: Security safeguards
 - 📝 **Smart Date Parsing**: Handles various date formats automatically
 - 💬 **WebSocket Support**: Real-time communication with thinking updates
+- 🛡️ **Rate Limit Handling**: Graceful error handling for API rate limits
 
 ## 🏗️ Architecture
 
@@ -68,6 +70,9 @@ This is a Spring Boot 3.4 application that demonstrates an **agentic AI system**
 │  - createAppointment(...)                  │
 │  - updateAppointment(...)                  │
 │  - deleteAppointment(...)                  │
+│  - createUser(firstName, lastName, dob, email) │
+│  - updateUser(userId, ...)                 │
+│  - deleteUser(userId)                      │
 └─────────────────────────────────────────────┘
          │
          ▼
@@ -240,11 +245,12 @@ spring:
       model: llama3.1  # Use llama3.1 or mistral
       temperature: 0.7
 
-    # Groq Configuration (Default - FREE tier: 14,400 requests/day)
+    # Groq Configuration (Default - FREE tier: 100,000 tokens/day)
     # Get API key: https://console.groq.com/keys
     groq:
       api-key: ${LANGCHAIN4J_GROQ_API_KEY:}
-      model: llama-3.3-70b-versatile
+      model: llama-3.1-8b-instant  # Smaller model to avoid rate limits
+      # Alternative: llama-3.3-70b-versatile (more capable but token-heavy)
       temperature: 0.7
     
     # OpenAI Configuration (Optional - Requires API Key)
@@ -535,7 +541,8 @@ appointmentscheduler/
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── ChatComponent.jsx
-│   │   │   └── AppointmentTable.jsx
+│   │   │   ├── AppointmentTable.jsx
+│   │   │   └── UserTable.jsx
 │   │   ├── App.jsx
 │   │   ├── main.jsx
 │   │   └── index.css

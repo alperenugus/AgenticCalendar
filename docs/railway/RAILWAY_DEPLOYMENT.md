@@ -57,10 +57,10 @@ PGDATABASE=railway
 PGUSER=postgres
 PGPASSWORD=your-password-here
 
-# Groq LLM (FREE tier: 14,400 requests/day)
+# Groq LLM (FREE tier: 100,000 tokens/day)
 LANGCHAIN4J_PROVIDER=groq
 LANGCHAIN4J_GROQ_API_KEY=your-groq-api-key-here
-LANGCHAIN4J_GROQ_MODEL=llama-3.3-70b-versatile
+LANGCHAIN4J_GROQ_MODEL=llama-3.1-8b-instant  # Smaller model to avoid rate limits
 LANGCHAIN4J_GROQ_TEMPERATURE=0.7
 ```
 
