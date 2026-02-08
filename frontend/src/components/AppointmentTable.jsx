@@ -8,14 +8,19 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080
 function AppointmentTable({ refreshTrigger }) {
   const [appointments, setAppointments] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isManualRefresh, setIsManualRefresh] = useState(false)
   const [error, setError] = useState(null)
+  const [lastUpdated, setLastUpdated] = useState(null)
 
-  const fetchAppointments = async () => {
+  const fetchAppointments = async (silent = false) => {
     try {
-      setIsLoading(true)
+      if (!silent) {
+        setIsLoading(true)
+      }
       setError(null)
       const response = await axios.get(`${API_BASE_URL}/appointments`)
       setAppointments(response.data || [])
+      setLastUpdated(new Date())
     } catch (error) {
       console.error('Error fetching appointments:', error)
       setError('Failed to load appointments')
@@ -26,6 +31,7 @@ function AppointmentTable({ refreshTrigger }) {
       }
     } finally {
       setIsLoading(false)
+      setIsManualRefresh(false)
     }
   }
 
@@ -33,10 +39,10 @@ function AppointmentTable({ refreshTrigger }) {
     fetchAppointments()
   }, [refreshTrigger])
 
-  // Auto-refresh every 5 seconds
+  // Auto-refresh every 5 seconds (silent - no loading indicator)
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchAppointments()
+      fetchAppointments(true) // Silent refresh
     }, 5000)
 
     return () => clearInterval(interval)
@@ -90,15 +96,25 @@ function AppointmentTable({ refreshTrigger }) {
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header with refresh button */}
       <div className="px-6 py-3 border-b border-slate-700 flex items-center justify-between">
-        <p className="text-sm text-slate-400">
-          {appointments.length} appointment{appointments.length !== 1 ? 's' : ''} found
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-slate-400">
+            {appointments.length} appointment{appointments.length !== 1 ? 's' : ''} found
+          </p>
+          {lastUpdated && !isLoading && (
+            <span className="text-xs text-slate-500">
+              Updated {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
+        </div>
         <button
-          onClick={fetchAppointments}
-          disabled={isLoading}
+          onClick={() => {
+            setIsManualRefresh(true)
+            fetchAppointments(false)
+          }}
+          disabled={isLoading && isManualRefresh}
           className="flex items-center gap-2 px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-slate-200 rounded-lg transition-colors"
         >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-4 h-4 ${isLoading && isManualRefresh ? 'animate-spin' : ''}`} />
           Refresh
         </button>
       </div>

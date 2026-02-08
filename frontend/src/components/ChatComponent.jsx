@@ -132,7 +132,7 @@ function ChatComponent({ onMessageSent }) {
             {
               id: 1,
               type: 'assistant',
-              content: "Hello! I'm your AI appointment scheduling assistant. I can help you create, update, or cancel appointments. How can I assist you today?",
+              content: "Hello! I'm your AI appointment scheduling assistant. I can help you create, update, or cancel appointments for Alperen Ugus. How can I assist you today?",
               thinking: false,
               toolCalls: null,
             },
@@ -430,7 +430,13 @@ function ChatComponent({ onMessageSent }) {
     <div className="flex flex-col h-full">
       {/* Connection Status Indicator */}
       <div className="px-4 py-2 bg-slate-800 border-b border-slate-700 flex items-center justify-between">
-        <span className="text-xs text-slate-400">Real-time thinking enabled</span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-slate-400">Real-time thinking enabled</span>
+          <div className="flex items-center gap-2 px-2 py-1 bg-blue-900/30 border border-blue-700/50 rounded">
+            <User className="w-3 h-3 text-blue-400" />
+            <span className="text-xs text-blue-300 font-medium">Demo User: Alperen Ugus</span>
+          </div>
+        </div>
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
           <span className="text-xs text-slate-400">{isConnected ? 'Connected' : 'Disconnected'}</span>
@@ -532,7 +538,7 @@ function ChatComponent({ onMessageSent }) {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
+            placeholder="Type your message... (e.g., 'Create an appointment for Alperen Ugus on...')"
             disabled={isLoading}
             className="flex-1 px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
           />
