@@ -366,6 +366,27 @@ curl -X POST http://localhost:8080/api/agent/chat \
   -d '{"message": "Cancel appointment for Alperen Ugus born on 1990-01-01", "sessionId": "session-123"}'
 ```
 
+#### Create User
+```bash
+curl -X POST http://localhost:8080/api/agent/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Create a new user named Jane Doe, born on 1995-06-15, email jane.doe@example.com", "sessionId": "session-123"}'
+```
+
+#### Update User
+```bash
+curl -X POST http://localhost:8080/api/agent/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Update Alperen Ugus email to newemail@example.com", "sessionId": "session-123"}'
+```
+
+#### Delete User
+```bash
+curl -X POST http://localhost:8080/api/agent/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Delete user with ID 5", "sessionId": "session-123"}'
+```
+
 ### Debug Endpoints
 
 #### Get All Users
@@ -454,6 +475,16 @@ docker ps
 - Use `llama3.1` or `mistral` (not `llama3.2`)
 - Check system prompt in `AgentService.java`
 - Review logs to see what LLM is generating
+
+#### 5. Rate Limit Exceeded
+
+**Symptom**: Error message about rate limits or tokens per day
+
+**Solution**:
+- The system automatically handles rate limit errors with user-friendly messages
+- Switch to `llama-3.1-8b-instant` model (uses ~10x fewer tokens)
+- Wait for the daily token limit to reset (100,000 tokens/day for Groq free tier)
+- Consider upgrading to Groq Dev Tier if you need more capacity
 
 ### Logging Levels
 
