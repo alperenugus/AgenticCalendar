@@ -240,22 +240,29 @@ spring:
       model: llama3.1  # Use llama3.1 or mistral
       temperature: 0.7
 
+    # Groq Configuration (Default - FREE tier: 14,400 requests/day)
+    # Get API key: https://console.groq.com/keys
+    groq:
+      api-key: ${LANGCHAIN4J_GROQ_API_KEY:}
+      model: llama-3.3-70b-versatile
+      temperature: 0.7
+    
     # OpenAI Configuration (Optional - Requires API Key)
-    # Uncomment and set OPENAI_API_KEY environment variable
+    # Set LANGCHAIN4J_PROVIDER=openai to use OpenAI
     # openai:
-    #   api-key: ${OPENAI_API_KEY}
+    #   api-key: ${LANGCHAIN4J_OPENAI_API_KEY:}
     #   model: gpt-4o-mini
     #   temperature: 0.7
 ```
 
 ### Switching to OpenAI
 
-1. Get an API key from [OpenAI](https://platform.openai.com/api-keys)
+1. Get an API key from [OpenAI](https://platform.openai.com/api-keys) or use Groq (free) from [Groq Console](https://console.groq.com/keys)
 2. Set environment variable:
    ```bash
-   export OPENAI_API_KEY=your-api-key-here
+   export LANGCHAIN4J_GROQ_API_KEY=your-groq-api-key-here
    ```
-3. Update `LangChain4jConfig.java` to use OpenAI instead of Ollama
+3. The application defaults to Groq. To use OpenAI, set `LANGCHAIN4J_PROVIDER=openai` and configure OpenAI API key.
 
 ### Database Configuration
 

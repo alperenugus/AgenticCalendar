@@ -31,25 +31,27 @@ public class LangChain4jConfig {
     private Double groqTemperature;
 
     // LLM Provider selection
-    @Value("${langchain4j.provider:ollama}")
+    @Value("${langchain4j.provider:groq}")
     private String provider;
 
     @Bean
     public ChatLanguageModel chatLanguageModel() {
-        // Use Groq if API key is provided (Groq uses OpenAI-compatible API)
-        if ("groq".equalsIgnoreCase(provider) && groqApiKey != null && !groqApiKey.isEmpty()) {
+        // Default to Groq (works both locally and on Railway)
+        // Use Ollama only if explicitly set via LANGCHAIN4J_PROVIDER=ollama
+        if ("ollama".equalsIgnoreCase(provider)) {
+            return OllamaChatModel.builder()
+                    .baseUrl(ollamaBaseUrl)
+                    .modelName(ollamaModel)
+                    .temperature(ollamaTemperature)
+                    .build();
+        } else {
+            // Default to Groq (uses OpenAI-compatible API)
+            // If API key is not set, will fail with clear error message
             return OpenAiChatModel.builder()
                     .apiKey(groqApiKey)
                     .baseUrl("https://api.groq.com/openai/v1")  // Groq's OpenAI-compatible endpoint
                     .modelName(groqModel)
                     .temperature(groqTemperature)
-                    .build();
-        } else {
-            // Default to Ollama for local development
-            return OllamaChatModel.builder()
-                    .baseUrl(ollamaBaseUrl)
-                    .modelName(ollamaModel)
-                    .temperature(ollamaTemperature)
                     .build();
         }
     }

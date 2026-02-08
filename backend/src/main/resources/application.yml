@@ -22,23 +22,24 @@ spring:
   # LangChain4j Configuration
   # LangChain4j is the industry standard for Java LLM applications
   langchain4j:
-    # Provider selection: "ollama" for local dev, "groq" for Railway (free tier)
-    provider: ollama  # Change to "groq" for Railway deployment
+    # Provider selection: "groq" is default (free tier: 14,400 requests/day)
+    # Set LANGCHAIN4J_PROVIDER=ollama to use local Ollama instead
+    provider: groq  # Default to Groq (works both locally and on Railway)
     
-    # Ollama Configuration (for local development)
-    # Ollama must be running locally: docker run -d -p 11434:11434 ollama/ollama
-    ollama:
-      base-url: http://localhost:11434
-      model: llama3.1  # Use llama3.1 - it supports tool calling!
-      temperature: 0.7
-    
-    # Groq Configuration (for Railway - FREE tier: 14,400 requests/day)
+    # Groq Configuration (FREE tier: 14,400 requests/day)
     # Get API key: https://console.groq.com/keys
-    # Set LANGCHAIN4J_GROQ_API_KEY environment variable in Railway
+    # Set LANGCHAIN4J_GROQ_API_KEY environment variable
     groq:
       api-key: ${LANGCHAIN4J_GROQ_API_KEY:}
       model: llama-3.3-70b-versatile  # Current model (llama-3.1-70b-versatile was decommissioned)
       # Alternative models: llama-3.1-8b-instant (faster), mixtral-8x7b-32768
+      temperature: 0.7
+    
+    # Ollama Configuration (for local development - optional)
+    # To use Ollama, set LANGCHAIN4J_PROVIDER=ollama and run: docker run -d -p 11434:11434 ollama/ollama
+    ollama:
+      base-url: http://localhost:11434
+      model: llama3.1  # Use llama3.1 - it supports tool calling!
       temperature: 0.7
 
 # Server Configuration

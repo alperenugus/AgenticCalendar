@@ -59,8 +59,8 @@ PGPASSWORD=your-password-here
 
 # Groq LLM (FREE tier: 14,400 requests/day)
 LANGCHAIN4J_PROVIDER=groq
-LANGCHAIN4J_GROQ_API_KEY=gsk-your-api-key-here
-LANGCHAIN4J_GROQ_MODEL=llama-3.1-70b-versatile
+LANGCHAIN4J_GROQ_API_KEY=your-groq-api-key-here
+LANGCHAIN4J_GROQ_MODEL=llama-3.3-70b-versatile
 LANGCHAIN4J_GROQ_TEMPERATURE=0.7
 ```
 
@@ -98,7 +98,7 @@ Go to frontend service → **Variables** tab, add:
 ```bash
 # Backend API URL (use the backend URL from Step 1.4)
 VITE_API_BASE_URL=https://your-backend-service.railway.app/api
-VITE_WS_BASE_URL=wss://your-backend-service.railway.app/ws
+VITE_WS_BASE_URL=https://your-backend-service.railway.app/ws
 
 # Base path (empty for Railway)
 VITE_BASE_PATH=/

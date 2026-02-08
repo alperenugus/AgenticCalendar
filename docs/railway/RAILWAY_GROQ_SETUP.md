@@ -30,7 +30,7 @@ Go to your **Backend service** in Railway → **Variables** tab:
 LANGCHAIN4J_PROVIDER=groq
 
 # Groq API Key (starts with gsk_...)
-LANGCHAIN4J_GROQ_API_KEY=gsk-your-actual-api-key-here
+LANGCHAIN4J_GROQ_API_KEY=your-groq-api-key-here
 
 # Groq Model (optional - defaults to llama-3.3-70b-versatile)
 # Note: llama-3.1-70b-versatile was decommissioned, use llama-3.3-70b-versatile instead
@@ -95,7 +95,7 @@ Check the backend logs. You should see:
 - [ ] Got API key from https://console.groq.com/keys
 - [ ] Key starts with `gsk_`
 - [ ] Set `LANGCHAIN4J_PROVIDER=groq` in Railway
-- [ ] Set `LANGCHAIN4J_GROQ_API_KEY=gsk_...` in Railway
+- [ ] Set `LANGCHAIN4J_GROQ_API_KEY` in Railway
 - [ ] No extra spaces in the key
 - [ ] Backend redeployed after setting variables
 - [ ] Check logs - no "Invalid API Key" errors
@@ -104,7 +104,7 @@ Check the backend logs. You should see:
 
 ```bash
 LANGCHAIN4J_PROVIDER=groq
-LANGCHAIN4J_GROQ_API_KEY=gsk_1234567890abcdefghijklmnopqrstuvwxyz
+LANGCHAIN4J_GROQ_API_KEY=your-groq-api-key-here
 LANGCHAIN4J_GROQ_MODEL=llama-3.3-70b-versatile
 LANGCHAIN4J_GROQ_TEMPERATURE=0.7
 ```
@@ -114,7 +114,7 @@ LANGCHAIN4J_GROQ_TEMPERATURE=0.7
 - `llama-3.1-8b-instant` - Faster, smaller model
 - `mixtral-8x7b-32768` - Alternative model
 
-**Note**: Replace `gsk_1234567890abcdefghijklmnopqrstuvwxyz` with your actual API key!
+**Note**: Replace `your-groq-api-key-here` with your actual API key from https://console.groq.com/keys
 
 ## Free Tier Limits
 

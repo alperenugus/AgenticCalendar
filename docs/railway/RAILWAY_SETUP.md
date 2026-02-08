@@ -105,8 +105,8 @@ SPRING_DATASOURCE_PASSWORD=...
 
 # Option 1: Groq (FREE - Recommended! 14,400 requests/day)
 LANGCHAIN4J_PROVIDER=groq
-LANGCHAIN4J_GROQ_API_KEY=gsk-your-groq-api-key-here
-LANGCHAIN4J_GROQ_MODEL=llama-3.1-70b-versatile
+LANGCHAIN4J_GROQ_API_KEY=your-groq-api-key-here
+LANGCHAIN4J_GROQ_MODEL=llama-3.3-70b-versatile
 LANGCHAIN4J_GROQ_TEMPERATURE=0.7
 
 # Option 2: Google Gemini (FREE - 1,500 requests/day)
