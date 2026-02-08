@@ -113,17 +113,17 @@ public class AgentService {
                 String errorMessage = e.getMessage();
                 if (errorMessage != null && errorMessage.contains("rate_limit")) {
                     log.error("Rate limit exceeded for LLM provider", e);
-                    String userMessage = "I've reached the API rate limit. Please try again in a few minutes. " +
+                    String errorResponse = "I've reached the API rate limit. Please try again in a few minutes. " +
                             "If this persists, the system administrator may need to upgrade the API tier or switch to a different model.";
-                    context.addAssistantMessage(userMessage);
-                    webSocketService.sendFinalResponse(sessionId, userMessage);
-                    return new AgentResponse(userMessage, thinkingSteps);
+                    context.addAssistantMessage(errorResponse);
+                    webSocketService.sendFinalResponse(sessionId, errorResponse);
+                    return new AgentResponse(errorResponse, thinkingSteps);
                 } else if (errorMessage != null && errorMessage.contains("tokens per day")) {
                     log.error("Daily token limit exceeded", e);
-                    String userMessage = "The daily token limit has been reached. Please try again tomorrow or contact the administrator.";
-                    context.addAssistantMessage(userMessage);
-                    webSocketService.sendFinalResponse(sessionId, userMessage);
-                    return new AgentResponse(userMessage, thinkingSteps);
+                    String errorResponse = "The daily token limit has been reached. Please try again tomorrow or contact the administrator.";
+                    context.addAssistantMessage(errorResponse);
+                    webSocketService.sendFinalResponse(sessionId, errorResponse);
+                    return new AgentResponse(errorResponse, thinkingSteps);
                 } else {
                     // Re-throw other exceptions
                     throw e;
