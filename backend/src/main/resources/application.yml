@@ -26,13 +26,16 @@ spring:
     # Set LANGCHAIN4J_PROVIDER=ollama to use local Ollama instead
     provider: groq  # Default to Groq (works both locally and on Railway)
     
-    # Groq Configuration (FREE tier: 14,400 requests/day)
+    # Groq Configuration (FREE tier: 100,000 tokens/day)
     # Get API key: https://console.groq.com/keys
     # Set LANGCHAIN4J_GROQ_API_KEY environment variable
     groq:
       api-key: ${LANGCHAIN4J_GROQ_API_KEY:}
-      model: llama-3.3-70b-versatile  # Current model (llama-3.1-70b-versatile was decommissioned)
-      # Alternative models: llama-3.1-8b-instant (faster), mixtral-8x7b-32768
+      # Using smaller model to reduce token usage and avoid rate limits
+      # llama-3.1-8b-instant: Fast, efficient, uses ~10x fewer tokens than 70b models
+      # llama-3.3-70b-versatile: More capable but uses many more tokens (may hit rate limits)
+      model: llama-3.1-8b-instant  # Switched to smaller model to avoid rate limits
+      # Alternative models: llama-3.3-70b-versatile (more capable but token-heavy), mixtral-8x7b-32768
       temperature: 0.7
     
     # Ollama Configuration (for local development - optional)
