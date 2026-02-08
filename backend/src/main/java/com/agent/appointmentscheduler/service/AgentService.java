@@ -189,6 +189,25 @@ public class AgentService {
                     Long deleteAppointmentId = inputNode.get("appointmentId").asLong();
                     return toolService.deleteAppointment(deleteAppointmentId);
                     
+                case "createUser":
+                    String createFirstName = inputNode.get("firstName").asText();
+                    String createLastName = inputNode.get("lastName").asText();
+                    String createDob = inputNode.get("dob").asText();
+                    String createEmail = inputNode.get("email").asText();
+                    return toolService.createUser(createFirstName, createLastName, createDob, createEmail);
+                    
+                case "updateUser":
+                    Long updateUserId = inputNode.get("userId").asLong();
+                    String updateFirstName = inputNode.has("firstName") ? inputNode.get("firstName").asText() : null;
+                    String updateLastName = inputNode.has("lastName") ? inputNode.get("lastName").asText() : null;
+                    String updateDob = inputNode.has("dob") ? inputNode.get("dob").asText() : null;
+                    String updateEmail = inputNode.has("email") ? inputNode.get("email").asText() : null;
+                    return toolService.updateUser(updateUserId, updateFirstName, updateLastName, updateDob, updateEmail);
+                    
+                case "deleteUser":
+                    Long deleteUserId = inputNode.get("userId").asLong();
+                    return toolService.deleteUser(deleteUserId);
+                    
                 default:
                     return "{\"error\": \"Unknown tool: " + toolName + "\"}";
             }
@@ -213,6 +232,9 @@ public class AgentService {
                 - createAppointment(userId, appointmentDateTime, description): Books a new slot.
                 - updateAppointment(appointmentId, newDateTime): Modifies an existing slot.
                 - deleteAppointment(appointmentId): Cancels a specific slot.
+                - createUser(firstName, lastName, dob, email): Creates a new user in the system. Collect all required information before calling.
+                - updateUser(userId, firstName, lastName, dob, email): Updates an existing user's information. Only provide fields that need updating.
+                - deleteUser(userId): Permanently deletes a user from the system. Use with caution.
 
                 ### THE REACT PROTOCOL:
                 CRITICAL: You MUST follow this pattern exactly:

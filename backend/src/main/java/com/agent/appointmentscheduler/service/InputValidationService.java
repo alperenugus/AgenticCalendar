@@ -139,5 +139,28 @@ public class InputValidationService {
 
         return sanitized;
     }
+
+    /**
+     * Validates that an email address is in a valid format.
+     */
+    public String validateEmail(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("Email cannot be empty");
+        }
+
+        String sanitized = email.trim().toLowerCase();
+
+        // Basic email format validation
+        String emailPattern = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
+        if (!sanitized.matches(emailPattern)) {
+            throw new IllegalArgumentException("Invalid email format");
+        }
+
+        if (sanitized.length() > 255) {
+            throw new IllegalArgumentException("Email exceeds maximum length of 255 characters");
+        }
+
+        return sanitized;
+    }
 }
 

@@ -210,5 +210,95 @@ public class AppointmentToolService {
             return String.format("{\"error\": \"Error deleting appointment: %s\"}", e.getMessage());
         }
     }
+
+    @Tool("Create a new user in the system. Use this when the user wants to register, add, or create a new user. " +
+          "The LLM should collect all required information (first name, last name, date of birth, email) from the user " +
+          "before calling this function. The date of birth can be provided in any natural language format " +
+          "(e.g., '1990-01-01', 'January 1, 1990', 'born on 1990-01-01') and will be automatically parsed. " +
+          "Requires: firstName, lastName, dob (date string in any format), email. Returns the created user's ID.")
+    public String createUser(String firstName, String lastName, String dob, String email) {
+        log.info("🔵 createUser CALLED with firstName={}, lastName={}, dob={}, email={}", firstName, lastName, dob, email);
+        try {
+            String validatedFirstName = inputValidationService.validateName(firstName);
+            String validatedLastName = inputValidationService.validateName(lastName);
+            LocalDate dobParsed = DateParser.parseDate(dob);
+            String validatedEmail = inputValidationService.validateEmail(email);
+            
+            log.info("Creating user: firstName={}, lastName={}, dob={}, email={}", validatedFirstName, validatedLastName, dobParsed, validatedEmail);
+            User user = userService.createUser(validatedFirstName, validatedLastName, dobParsed, validatedEmail);
+            log.info("User created successfully: id={}", user.getId());
+            
+            return String.format(
+                "{\"userId\": %d, \"firstName\": \"%s\", \"lastName\": \"%s\", \"dob\": \"%s\", \"email\": \"%s\", \"message\": \"User created successfully\"}",
+                user.getId(), user.getFirstName(), user.getLastName(), user.getDob(), user.getEmail()
+            );
+        } catch (Exception e) {
+            log.error("Error creating user: {}", e.getMessage(), e);
+            return String.format("{\"error\": \"Error creating user: %s\"}", e.getMessage());
+        }
+    }
+
+    @Tool("Update an existing user's information. Use this when the user wants to change, modify, or update " +
+          "their personal information (name, date of birth, or email). The LLM should collect the updated " +
+          "information from the user. Requires: userId (numeric ID from getUser function), and any combination " +
+          "of: firstName, lastName, dob (date string in any format), email. Only provide the fields that need " +
+          "to be updated. The date of birth can be provided in any natural language format.")
+    public String updateUser(Long userId, String firstName, String lastName, String dob, String email) {
+        log.info("🔵 updateUser CALLED with userId={}, firstName={}, lastName={}, dob={}, email={}", 
+                userId, firstName, lastName, dob, email);
+        try {
+            String validatedFirstName = null;
+            String validatedLastName = null;
+            LocalDate dobParsed = null;
+            String validatedEmail = null;
+            
+            if (firstName != null && !firstName.trim().isEmpty()) {
+                validatedFirstName = inputValidationService.validateName(firstName);
+            }
+            if (lastName != null && !lastName.trim().isEmpty()) {
+                validatedLastName = inputValidationService.validateName(lastName);
+            }
+            if (dob != null && !dob.trim().isEmpty()) {
+                dobParsed = DateParser.parseDate(dob);
+            }
+            if (email != null && !email.trim().isEmpty()) {
+                validatedEmail = inputValidationService.validateEmail(email);
+            }
+            
+            log.info("Updating user: userId={}, firstName={}, lastName={}, dob={}, email={}", 
+                    userId, validatedFirstName, validatedLastName, dobParsed, validatedEmail);
+            User user = userService.updateUser(userId, validatedFirstName, validatedLastName, dobParsed, validatedEmail);
+            log.info("User updated successfully: id={}", user.getId());
+            
+            return String.format(
+                "{\"userId\": %d, \"firstName\": \"%s\", \"lastName\": \"%s\", \"dob\": \"%s\", \"email\": \"%s\", \"message\": \"User updated successfully\"}",
+                user.getId(), user.getFirstName(), user.getLastName(), user.getDob(), user.getEmail()
+            );
+        } catch (Exception e) {
+            log.error("Error updating user: {}", e.getMessage(), e);
+            return String.format("{\"error\": \"Error updating user: %s\"}", e.getMessage());
+        }
+    }
+
+    @Tool("Delete a user from the system permanently. Use this when the user explicitly wants to remove, " +
+          "delete, or unregister a user account. Keywords: 'delete user', 'remove user', 'unregister'. " +
+          "If the userId is not provided, first call getUser to find the user. Requires: userId (numeric). " +
+          "WARNING: This permanently removes the user and all their appointments. Use with caution.")
+    public String deleteUser(Long userId) {
+        log.info("🔵 deleteUser CALLED with userId={}", userId);
+        try {
+            log.info("Deleting user: userId={}", userId);
+            userService.deleteUser(userId);
+            log.info("User deleted successfully: id={}", userId);
+            
+            return String.format(
+                "{\"userId\": %d, \"message\": \"User deleted successfully\"}",
+                userId
+            );
+        } catch (Exception e) {
+            log.error("Error deleting user: {}", e.getMessage(), e);
+            return String.format("{\"error\": \"Error deleting user: %s\"}", e.getMessage());
+        }
+    }
 }
 

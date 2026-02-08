@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import ChatComponent from './components/ChatComponent'
 import AppointmentTable from './components/AppointmentTable'
-import { Calendar, MessageSquare } from 'lucide-react'
+import UserTable from './components/UserTable'
+import { Calendar, MessageSquare, Users } from 'lucide-react'
 
 function App() {
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   const handleMessageSent = () => {
-    // Trigger refresh of appointment table after message is sent
+    // Trigger refresh of both tables after message is sent
     setRefreshTrigger(prev => prev + 1)
   }
 
@@ -28,7 +29,7 @@ function App() {
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-120px)]">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-120px)]">
           {/* Left Panel - Chat Interface */}
           <div className="flex flex-col bg-slate-800/50 rounded-lg border border-slate-700 shadow-xl">
             <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-700">
@@ -38,13 +39,22 @@ function App() {
             <ChatComponent onMessageSent={handleMessageSent} />
           </div>
 
-          {/* Right Panel - Appointment Monitor */}
+          {/* Middle Panel - Appointment Monitor */}
           <div className="flex flex-col bg-slate-800/50 rounded-lg border border-slate-700 shadow-xl">
             <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-700">
               <Calendar className="w-5 h-5 text-green-400" />
               <h2 className="text-lg font-semibold text-white">Live Appointment Monitor</h2>
             </div>
             <AppointmentTable refreshTrigger={refreshTrigger} />
+          </div>
+
+          {/* Right Panel - Registered Users */}
+          <div className="flex flex-col bg-slate-800/50 rounded-lg border border-slate-700 shadow-xl">
+            <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-700">
+              <Users className="w-5 h-5 text-purple-400" />
+              <h2 className="text-lg font-semibold text-white">Registered Users</h2>
+            </div>
+            <UserTable refreshTrigger={refreshTrigger} />
           </div>
         </div>
       </main>

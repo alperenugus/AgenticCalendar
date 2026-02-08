@@ -103,5 +103,55 @@ public class UserService {
         
         return List.of();
     }
+    
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+    
+    public User createUser(String firstName, String lastName, LocalDate dob, String email) {
+        // Check if user with same email already exists
+        Optional<User> existingUser = userRepository.findByEmail(email);
+        if (existingUser.isPresent()) {
+            throw new IllegalArgumentException("User with email " + email + " already exists");
+        }
+        
+        User user = new User(firstName, lastName, dob, email);
+        return userRepository.save(user);
+    }
+    
+    public User updateUser(Long userId, String firstName, String lastName, LocalDate dob, String email) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User with ID " + userId + " not found"));
+        
+        // Check if email is being changed and if new email already exists
+        if (email != null && !email.equals(user.getEmail())) {
+            Optional<User> existingUser = userRepository.findByEmail(email);
+            if (existingUser.isPresent() && !existingUser.get().getId().equals(userId)) {
+                throw new IllegalArgumentException("User with email " + email + " already exists");
+            }
+        }
+        
+        if (firstName != null) {
+            user.setFirstName(firstName);
+        }
+        if (lastName != null) {
+            user.setLastName(lastName);
+        }
+        if (dob != null) {
+            user.setDob(dob);
+        }
+        if (email != null) {
+            user.setEmail(email);
+        }
+        
+        return userRepository.save(user);
+    }
+    
+    public void deleteUser(Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new IllegalArgumentException("User with ID " + userId + " not found");
+        }
+        userRepository.deleteById(userId);
+    }
 }
 
