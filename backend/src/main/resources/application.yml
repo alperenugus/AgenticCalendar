@@ -3,9 +3,11 @@ spring:
     name: appointmentscheduler
   
   datasource:
-    url: jdbc:postgresql://localhost:5432/appointmentscheduler
-    username: postgres
-    password: postgres
+    # Railway PostgreSQL - uses environment variables automatically set by Railway
+    # Railway sets: PGHOST, PGPORT, PGDATABASE, PGUSER, PGPASSWORD
+    url: jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:appointmentscheduler}
+    username: ${PGUSER:postgres}
+    password: ${PGPASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
   
   jpa:
@@ -20,14 +22,28 @@ spring:
   # LangChain4j Configuration
   # LangChain4j is the industry standard for Java LLM applications
   langchain4j:
+    # Provider selection: "ollama" for local dev, "groq" for Railway (free tier)
+    provider: ollama  # Change to "groq" for Railway deployment
+    
+    # Ollama Configuration (for local development)
+    # Ollama must be running locally: docker run -d -p 11434:11434 ollama/ollama
     ollama:
       base-url: http://localhost:11434
       model: llama3.1  # Use llama3.1 - it supports tool calling!
       temperature: 0.7
+    
+    # Groq Configuration (for Railway - FREE tier: 14,400 requests/day)
+    # Get API key: https://console.groq.com/keys
+    # Set LANGCHAIN4J_GROQ_API_KEY environment variable in Railway
+    groq:
+      api-key: ${LANGCHAIN4J_GROQ_API_KEY:}
+      model: llama-3.3-70b-versatile  # Current model (llama-3.1-70b-versatile was decommissioned)
+      # Alternative models: llama-3.1-8b-instant (faster), mixtral-8x7b-32768
+      temperature: 0.7
 
 # Server Configuration
 server:
-  port: 8080
+  port: ${PORT:8080}  # Use PORT env var for Railway, default to 8080
 
 # Logging
 logging:

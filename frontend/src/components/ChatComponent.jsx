@@ -5,8 +5,55 @@ import toast from 'react-hot-toast'
 import SockJS from 'sockjs-client'
 import { Client } from '@stomp/stompjs'
 
-const API_BASE_URL = 'http://localhost:8080/api'
-const WS_BASE_URL = 'http://localhost:8080/ws'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
+// SockJS expects http:// or https://, not ws:// or wss://
+// Convert wss:// to https:// and ws:// to http://
+// IMPORTANT: If page is loaded over HTTPS, WebSocket must also use HTTPS
+const getWebSocketUrl = () => {
+  const wsUrl = import.meta.env.VITE_WS_BASE_URL || 'http://localhost:8080/ws'
+  
+  // If empty or undefined, use default
+  if (!wsUrl || wsUrl.trim() === '') {
+    console.warn('VITE_WS_BASE_URL is not set, using default')
+    return 'http://localhost:8080/ws'
+  }
+  
+  // Ensure it's an absolute URL (starts with http:// or https://)
+  if (!wsUrl.startsWith('http://') && !wsUrl.startsWith('https://') && 
+      !wsUrl.startsWith('ws://') && !wsUrl.startsWith('wss://')) {
+    console.error('VITE_WS_BASE_URL must be an absolute URL starting with http://, https://, ws://, or wss://')
+    return 'http://localhost:8080/ws'
+  }
+  
+  // If it starts with wss://, convert to https://
+  if (wsUrl.startsWith('wss://')) {
+    return wsUrl.replace('wss://', 'https://')
+  }
+  // If it starts with ws://, convert to https:// (not http://) if page is HTTPS
+  if (wsUrl.startsWith('ws://')) {
+    // If page is loaded over HTTPS, force HTTPS for WebSocket (browser security requirement)
+    if (window.location.protocol === 'https:') {
+      console.warn('Page is HTTPS, converting ws:// to https:// for WebSocket')
+      return wsUrl.replace('ws://', 'https://')
+    }
+    return wsUrl.replace('ws://', 'http://')
+  }
+  
+  // If page is loaded over HTTPS but WebSocket URL is HTTP, convert to HTTPS
+  if (window.location.protocol === 'https:' && wsUrl.startsWith('http://')) {
+    console.warn('Page is HTTPS, converting http:// to https:// for WebSocket (browser security requirement)')
+    return wsUrl.replace('http://', 'https://')
+  }
+  
+  // Otherwise, use as-is (should be http:// or https://)
+  return wsUrl
+}
+const WS_BASE_URL = getWebSocketUrl()
+
+// Log for debugging (remove in production if needed)
+console.log('WebSocket URL:', WS_BASE_URL)
+console.log('API URL:', API_BASE_URL)
+console.log('Page protocol:', window.location.protocol)
 
 function ChatComponent({ onMessageSent }) {
   const [messages, setMessages] = useState([])
