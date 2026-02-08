@@ -3,29 +3,32 @@
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4-brightgreen)](https://spring.io/projects/spring-boot)
 [![Java](https://img.shields.io/badge/Java-21-orange)](https://openjdk.org/)
 [![React](https://img.shields.io/badge/React-18-blue)](https://react.dev/)
+[![LangChain4j](https://img.shields.io/badge/LangChain4j-0.34-blue)](https://github.com/langchain4j/langchain4j)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-An intelligent appointment scheduling system powered by Spring AI and Large Language Models (LLMs). This system uses a planning-based agentic architecture where the LLM generates structured execution plans that are then executed by the backend, enabling natural language interaction for appointment management.
+An intelligent appointment scheduling system powered by **LangChain4j** and Large Language Models (LLMs). This system uses the **ReAct (Reasoning and Acting) pattern** where the LLM reasons about user requests, selects appropriate tools, and iteratively works through tasks until completion.
 
 ## 🎯 Project Overview
 
-This is a Spring Boot 3.4 application that demonstrates an **agentic AI system** for appointment scheduling. Unlike traditional chatbots, this system uses a **planning-based approach** where:
+This is a Spring Boot 3.4 application that demonstrates an **agentic AI system** for appointment scheduling. The system uses the **ReAct pattern** where:
 
-1. The LLM analyzes user requests and generates a structured JSON execution plan
-2. The backend executes the plan step-by-step, resolving parameters and handling errors
-3. Tools are chained together automatically based on the plan
-4. Results are extracted and used in subsequent steps
+1. **Thought**: LLM describes what it needs to do
+2. **Action**: LLM selects a tool and provides arguments
+3. **Observation**: Java code executes the tool and returns the result to the LLM
+4. **Thought**: LLM evaluates the result and decides if it's done
+5. **Final Answer**: LLM provides the response to the user
 
 ### Key Features
 
-- 🤖 **AI-Powered Agent**: Natural language understanding for appointment requests
-- 📋 **Planning-Based Architecture**: LLM generates execution plans, backend executes them
+- 🤖 **AI-Powered Agent**: Natural language understanding for appointment requests using LangChain4j
+- 🔄 **ReAct Pattern**: Industry-standard reasoning and acting loop
+- 🔍 **Flexible User Search**: Search users with partial information (firstName, lastName, or dob - all optional)
 - 🔗 **Tool Chaining**: Automatic chaining of multiple tool calls
-- 🔄 **Parameter Resolution**: Dynamic parameter resolution using `${variableName}` syntax
 - 📊 **PostgreSQL Persistence**: Robust data storage with JPA
 - 🧪 **Comprehensive Testing**: Unit and integration tests included
-- 🔒 **Input Validation**: Security safeguards (currently disabled but preserved)
+- 🔒 **Input Validation**: Security safeguards
 - 📝 **Smart Date Parsing**: Handles various date formats automatically
+- 💬 **WebSocket Support**: Real-time communication with thinking updates
 
 ## 🏗️ Architecture
 
@@ -37,36 +40,34 @@ This is a Spring Boot 3.4 application that demonstrates an **agentic AI system**
 └────────┬────────┘
          │
 ┌────────▼─────────────────────────────────────┐
-│         AgentService                         │
+│         AgentService (LangChain4j)          │
 │  ┌──────────────────────────────────────┐   │
-│  │  1. Generate Execution Plan (LLM)    │   │
+│  │  1. Thought: LLM reasons            │   │
 │  └──────────────┬───────────────────────┘   │
 │                 │                             │
 │  ┌──────────────▼───────────────────────┐   │
-│  │  2. Parse Execution Plan (JSON)      │   │
+│  │  2. Action: LLM selects tool         │   │
 │  └──────────────┬───────────────────────┘   │
 │                 │                             │
 │  ┌──────────────▼───────────────────────┐   │
-│  │  3. Execute Plan (PlanExecutor)      │   │
-│  │     - Resolve parameters             │   │
-│  │     - Execute tools                  │   │
-│  │     - Extract values                 │   │
-│  │     - Handle errors                 │   │
+│  │  3. Observation: Tool executed      │   │
 │  └──────────────┬───────────────────────┘   │
 │                 │                             │
 │  ┌──────────────▼───────────────────────┐   │
-│  │  4. Generate Response (LLM)          │   │
+│  │  4. Thought: LLM evaluates result   │   │
+│  │     - Continue with another Action? │   │
+│  │     - Or provide Final Answer?      │   │
 │  └──────────────────────────────────────┘   │
 └─────────────────────────────────────────────┘
          │
          ▼
 ┌─────────────────────────────────────────────┐
-│            Tool Functions                   │
-│  - getUser                                   │
-│  - getAppointmentsByUser                   │
-│  - createAppointment                        │
-│  - updateAppointment                        │
-│  - deleteAppointment                        │
+│         AppointmentToolService             │
+│  - getUser(firstName?, lastName?, dob?)    │
+│  - getAppointmentsByUser(userId)            │
+│  - createAppointment(...)                  │
+│  - updateAppointment(...)                  │
+│  - deleteAppointment(...)                  │
 └─────────────────────────────────────────────┘
          │
          ▼
@@ -77,47 +78,24 @@ This is a Spring Boot 3.4 application that demonstrates an **agentic AI system**
 └─────────────────────────────────────────────┘
 ```
 
-### Execution Plan Structure
+### ReAct Pattern Flow
 
-The LLM generates plans in this format:
-
-```json
-{
-  "plan": "Human-readable description",
-  "steps": [
-    {
-      "stepNumber": 1,
-      "toolName": "getUser",
-      "parameters": {
-        "firstName": "Alperen",
-        "lastName": "Ugus",
-        "dob": "1990-01-01"
-      },
-      "expectedResult": "User object with userId",
-      "extractFromResult": {
-        "userId": "userId"
-      },
-      "onError": {
-        "action": "abort",
-        "message": "User not found"
-      }
-    },
-    {
-      "stepNumber": 2,
-      "toolName": "createAppointment",
-      "parameters": {
-        "userId": "${userId}",
-        "appointmentDateTime": "2024-12-25T14:00:00",
-        "description": "dental checkup"
-      },
-      "expectedResult": "Appointment created successfully",
-      "onError": {
-        "action": "abort",
-        "message": "Failed to create appointment"
-      }
-    }
-  ]
-}
+```
+User: "Update my appointment"
+  │
+  ├─> Thought: "I need to find the user first"
+  ├─> Action: getUser(firstName="John")
+  ├─> Observation: {"userId": 123, ...}
+  │
+  ├─> Thought: "Found user. Now get their appointments"
+  ├─> Action: getAppointmentsByUser(userId=123)
+  ├─> Observation: [{"appointmentId": 456, ...}]
+  │
+  ├─> Thought: "Found appointment. Now update it"
+  ├─> Action: updateAppointment(appointmentId=456, ...)
+  ├─> Observation: {"message": "Updated successfully"}
+  │
+  └─> Final Answer: "I've updated your appointment..."
 ```
 
 ## 📋 Requirements
@@ -188,30 +166,30 @@ npm install
 
 Ollama is a free, open-source tool for running LLMs locally.
 
-#### macOS
+**macOS**
 ```bash
 brew install ollama
 ```
 
-#### Linux
+**Linux**
 ```bash
 curl -fsSL https://ollama.com/install.sh | sh
 ```
 
-#### Windows
+**Windows**
 Download from [https://ollama.com/download](https://ollama.com/download)
 
-The system requires a model that supports tool calling. Use one of these:
+The system requires a model that supports structured output. Use one of these:
 
 ```bash
-# Recommended: llama3.1 (supports tool calling)
+# Recommended: llama3.1 (supports structured output)
 ollama pull llama3.1
 
-# Alternative: mistral (also supports tool calling)
+# Alternative: mistral (also supports structured output)
 ollama pull mistral
 ```
 
-**Important**: `llama3.2` does NOT support tool calling. Use `llama3.1` or `mistral`.
+**Important**: `llama3.2` does NOT support structured output well. Use `llama3.1` or `mistral`.
 
 #### Step 5: Start Services
 
@@ -255,23 +233,19 @@ Edit `backend/src/main/resources/application.yml`:
 
 ```yaml
 spring:
-  ai:
+  langchain4j:
     # Ollama Configuration (Default - FREE)
     ollama:
       base-url: http://localhost:11434
-      chat:
-        options:
-          model: llama3.1  # Use llama3.1 or mistral
-          temperature: 0.7
+      model: llama3.1  # Use llama3.1 or mistral
+      temperature: 0.7
 
     # OpenAI Configuration (Optional - Requires API Key)
     # Uncomment and set OPENAI_API_KEY environment variable
     # openai:
     #   api-key: ${OPENAI_API_KEY}
-    #   chat:
-    #     options:
-    #       model: gpt-4o-mini
-    #       temperature: 0.7
+    #   model: gpt-4o-mini
+    #   temperature: 0.7
 ```
 
 ### Switching to OpenAI
@@ -281,8 +255,7 @@ spring:
    ```bash
    export OPENAI_API_KEY=your-api-key-here
    ```
-3. Update `application.yml` to uncomment OpenAI config and comment Ollama config
-4. Update `AppointmentschedulerApplication.java` to remove OpenAI exclusion if needed
+3. Update `LangChain4jConfig.java` to use OpenAI instead of Ollama
 
 ### Database Configuration
 
@@ -344,13 +317,14 @@ Send natural language requests to the agent.
 ```bash
 curl -X POST http://localhost:8080/api/agent/chat \
   -H "Content-Type: application/json" \
-  -d '{"message": "Book an appointment for Alperen Ugus born on 1990-01-01 for December 25, 2024 at 2 PM for a dental checkup"}'
+  -d '{"message": "Book an appointment for Alperen Ugus born on 1990-01-01 for December 25, 2024 at 2 PM for a dental checkup", "sessionId": "session-123"}'
 ```
 
 **Response:**
 ```json
 {
-  "response": "I've successfully booked your appointment for December 25, 2024 at 2:00 PM for a dental checkup."
+  "response": "I've successfully booked your appointment for December 25, 2024 at 2:00 PM for a dental checkup.",
+  "thinkingSteps": [...]
 }
 ```
 
@@ -360,21 +334,23 @@ curl -X POST http://localhost:8080/api/agent/chat \
 ```bash
 curl -X POST http://localhost:8080/api/agent/chat \
   -H "Content-Type: application/json" \
-  -d '{"message": "Schedule a meeting for Sarah Smith born on 1985-05-15 on January 15, 2025 at 10 AM"}'
+  -d '{"message": "Schedule a meeting for Sarah Smith born on 1985-05-15 on January 15, 2025 at 10 AM", "sessionId": "session-123"}'
 ```
 
-#### Update Appointment
+#### Update Appointment (Flexible Search)
 ```bash
 curl -X POST http://localhost:8080/api/agent/chat \
   -H "Content-Type: application/json" \
-  -d '{"message": "Reschedule Alperen Ugus appointment to January 1, 2025 at 3 PM"}'
+  -d '{"message": "Reschedule Alperen appointment to January 1, 2025 at 3 PM", "sessionId": "session-123"}'
 ```
+
+Note: The system can find users with just a first name, last name, or date of birth!
 
 #### Cancel Appointment
 ```bash
 curl -X POST http://localhost:8080/api/agent/chat \
   -H "Content-Type: application/json" \
-  -d '{"message": "Cancel appointment for Alperen Ugus born on 1990-01-01"}'
+  -d '{"message": "Cancel appointment for Alperen Ugus born on 1990-01-01", "sessionId": "session-123"}'
 ```
 
 ### Debug Endpoints
@@ -410,12 +386,10 @@ curl http://localhost:8080/api/appointments/1
 
 The application already has debug logging enabled. Check logs for:
 
-- **Plan Generation**: Look for `📋 LLM Plan Response`
-- **Plan Parsing**: Look for `🔍 Parsing execution plan from JSON`
-- **Plan Execution**: Look for `🔵 Executing step X`
-- **Parameter Resolution**: Look for `🔧 Resolved placeholder`
-- **Value Extraction**: Look for `📦 Extracted`
-- **Tool Execution**: Look for `🔵 getUserFunction CALLED`
+- **ReAct Loop**: Look for `LLM Response (iteration X)`
+- **Tool Execution**: Look for `🔵 getUser CALLED`
+- **Observation**: Look for `Tool executed:`
+- **Final Answer**: Look for `Sent final response`
 
 ### Common Issues
 
@@ -455,33 +429,18 @@ docker-compose up -d
 docker ps
 ```
 
-#### 4. Plan Parsing Fails
+#### 4. LLM Not Following ReAct Pattern
 
-**Symptom**: `Failed to parse execution plan`
+**Symptom**: LLM generates Observations instead of waiting for tool results
 
 **Possible Causes**:
-- LLM returned text instead of JSON
-- JSON structure is invalid
-- Model doesn't support tool calling (use `llama3.1` or `mistral`)
+- Model doesn't support structured output well
+- System prompt not clear enough
 
 **Solution**:
-- Check logs for the actual LLM response
-- Verify model supports tool calling
+- Use `llama3.1` or `mistral` (not `llama3.2`)
 - Check system prompt in `AgentService.java`
-
-#### 5. Parameter Resolution Fails
-
-**Symptom**: `Placeholder ${variableName} not found in execution context`
-
-**Possible Causes**:
-- Value extraction failed in previous step
-- Wrong JSON path in `extractFromResult`
-- Variable name mismatch
-
-**Solution**:
-- Check extraction logs for the previous step
-- Verify JSON path matches actual result structure
-- Use correct path format: `appointments[0].appointmentId` not `appointmentId`
+- Review logs to see what LLM is generating
 
 ### Logging Levels
 
@@ -491,7 +450,7 @@ Adjust logging in `application.yml`:
 logging:
   level:
     com.agent.appointmentscheduler: DEBUG  # Application logs
-    org.springframework.ai: DEBUG          # Spring AI logs
+    dev.langchain4j: DEBUG                  # LangChain4j logs
     org.hibernate.SQL: DEBUG                # SQL queries
 ```
 
@@ -500,9 +459,9 @@ logging:
 ### Response Times
 
 Typical response times:
-- **Plan Generation**: 2-5 seconds (depends on LLM)
-- **Plan Execution**: 100-500ms (depends on database queries)
-- **Total Request**: 3-6 seconds
+- **Tool Execution**: 50-200ms (depends on database queries)
+- **LLM Reasoning**: 2-5 seconds (depends on LLM)
+- **Total Request**: 3-6 seconds (for multi-step tasks)
 
 ### Optimization Tips
 
@@ -533,30 +492,33 @@ appointmentscheduler/
 │   │   │   │   ├── AppointmentschedulerApplication.java
 │   │   │   │   ├── config/
 │   │   │   │   │   ├── DataInitializer.java
-│   │   │   │   │   └── WebConfig.java               # CORS configuration
+│   │   │   │   │   ├── LangChain4jConfig.java      # LangChain4j configuration
+│   │   │   │   │   ├── WebConfig.java                # CORS configuration
+│   │   │   │   │   └── WebSocketConfig.java         # WebSocket configuration
 │   │   │   │   ├── controller/
 │   │   │   │   │   ├── AgentController.java
 │   │   │   │   │   ├── AppointmentController.java
 │   │   │   │   │   └── UserController.java
 │   │   │   │   ├── model/
 │   │   │   │   │   ├── User.java
-│   │   │   │   │   └── Appointment.java
+│   │   │   │   │   ├── Appointment.java
+│   │   │   │   │   ├── AgentResponse.java
+│   │   │   │   │   ├── ConversationContext.java
+│   │   │   │   │   └── ConversationMessage.java
 │   │   │   │   ├── repository/
 │   │   │   │   │   ├── UserRepository.java
 │   │   │   │   │   └── AppointmentRepository.java
 │   │   │   │   ├── service/
-│   │   │   │   │   ├── AgentService.java
+│   │   │   │   │   ├── AgentService.java            # ReAct pattern implementation
 │   │   │   │   │   ├── AppointmentService.java
 │   │   │   │   │   ├── UserService.java
-│   │   │   │   │   └── InputValidationService.java
+│   │   │   │   │   ├── InputValidationService.java
+│   │   │   │   │   └── WebSocketService.java
 │   │   │   │   ├── tools/
-│   │   │   │   │   └── AppointmentTools.java
+│   │   │   │   │   └── AppointmentToolService.java  # LangChain4j tools
 │   │   │   │   └── util/
-│   │   │   │       ├── ExecutionPlan.java
-│   │   │   │       ├── PlanExecutor.java
-│   │   │   │       ├── DateParser.java
-│   │   │   │       ├── MessageExtractor.java
-│   │   │   │       └── ToolCallParser.java
+│   │   │   │       ├── ReActParser.java             # ReAct pattern parser
+│   │   │   │       └── DateParser.java
 │   │   │   └── resources/
 │   │   │       └── application.yml
 │   │   └── test/                                     # Tests
@@ -602,24 +564,17 @@ The project follows standard Java conventions. Use your IDE's auto-formatting.
 
 ### Adding New Tools
 
-1. Add function in `AppointmentTools.java`:
+1. Add method in `AppointmentToolService.java`:
 ```java
-@Bean
-@Qualifier("myNewFunction")
-public FunctionCallback myNewFunction() {
-    return FunctionCallbackWrapper.builder(
-        (Function<Map<String, Object>, MyResponse>) arguments -> {
-            // Implementation
-        }
-    )
-    .withName("myNewFunction")
-    .withDescription("Description of what it does")
-    .build();
+@Tool("Description of what the tool does")
+public String myNewTool(String param1, Long param2) {
+    // Implementation
+    return "{\"result\": \"...\"}";
 }
 ```
 
-2. Register in `AgentService` constructor
-3. Update system prompt in `AgentService` to mention the new tool
+2. Update system prompt in `AgentService.java` to mention the new tool
+3. The tool will be automatically available to the LLM
 
 ## 🤝 Contributing
 
@@ -635,7 +590,7 @@ This project is open source and available under the MIT License.
 
 ## 🙏 Acknowledgments
 
-- **Spring AI** for LLM integration
+- **LangChain4j** for LLM integration (industry standard)
 - **Ollama** for local LLM support
 - **Spring Boot** for the framework
 - **PostgreSQL** for data persistence

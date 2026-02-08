@@ -1,317 +1,271 @@
 package com.agent.appointmentscheduler.service;
 
-import com.agent.appointmentscheduler.tools.AppointmentTools;
-import com.agent.appointmentscheduler.util.ExecutionPlan;
-import com.agent.appointmentscheduler.util.MessageExtractor;
-import com.agent.appointmentscheduler.util.PlanExecutor;
-import com.agent.appointmentscheduler.util.ToolCallParser;
+import com.agent.appointmentscheduler.model.AgentResponse;
+import com.agent.appointmentscheduler.model.ConversationContext;
+import com.agent.appointmentscheduler.model.ConversationMessage;
+import com.agent.appointmentscheduler.tools.AppointmentToolService;
+import com.agent.appointmentscheduler.util.ReActParser;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.model.chat.ChatLanguageModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.model.function.FunctionCallback;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class AgentService {
 
     private static final Logger log = LoggerFactory.getLogger(AgentService.class);
-
-    private final ChatClient chatClient;
-    private final ChatModel chatModel; // Store ChatModel separately for plan generation
+    private static final int MAX_ITERATIONS = 10;
+    
+    private final ChatLanguageModel chatLanguageModel;
+    private final AppointmentToolService toolService;
     private final InputValidationService inputValidationService;
-    private final Map<String, FunctionCallback> functionCallbacks;
     private final ObjectMapper objectMapper;
+    private final WebSocketService webSocketService;
+    
+    private final Map<String, ConversationContext> conversationContexts = new ConcurrentHashMap<>();
+    private final Map<String, Long> sessionLastAccess = new ConcurrentHashMap<>();
+    private static final long SESSION_TIMEOUT_MS = TimeUnit.HOURS.toMillis(24);
+
+    private final ScheduledExecutorService sessionCleanupScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "session-cleanup");
+        t.setDaemon(true);
+        return t;
+    });
 
     public AgentService(
-            @Qualifier("ollamaChatModel") ChatModel chatModel,
-            @Qualifier("getUserFunction") FunctionCallback getUserFunction,
-            @Qualifier("getAppointmentsByUserFunction") FunctionCallback getAppointmentsByUserFunction,
-            @Qualifier("createAppointmentFunction") FunctionCallback createAppointmentFunction,
-            @Qualifier("updateAppointmentFunction") FunctionCallback updateAppointmentFunction,
-            @Qualifier("deleteAppointmentFunction") FunctionCallback deleteAppointmentFunction,
+            ChatLanguageModel chatLanguageModel,
+            AppointmentToolService toolService,
             InputValidationService inputValidationService,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            WebSocketService webSocketService
     ) {
-        this.chatModel = chatModel;
+        this.chatLanguageModel = chatLanguageModel;
+        this.toolService = toolService;
         this.inputValidationService = inputValidationService;
         this.objectMapper = objectMapper;
+        this.webSocketService = webSocketService;
         
-        // Store function callbacks for manual execution
-        this.functionCallbacks = new HashMap<>();
-        this.functionCallbacks.put("getUser", getUserFunction);
-        this.functionCallbacks.put("getAppointmentsByUser", getAppointmentsByUserFunction);
-        this.functionCallbacks.put("createAppointment", createAppointmentFunction);
-        this.functionCallbacks.put("updateAppointment", updateAppointmentFunction);
-        this.functionCallbacks.put("deleteAppointment", deleteAppointmentFunction);
-        
-        // Build ChatClient with the specified ChatModel
-        ChatClient.Builder chatClientBuilder = ChatClient.builder(chatModel);
-        // Register all tool functions with the ChatClient (for final response generation)
-        this.chatClient = chatClientBuilder
-                .defaultFunctions(
-                        getUserFunction,
-                        getAppointmentsByUserFunction,
-                        createAppointmentFunction,
-                        updateAppointmentFunction,
-                        deleteAppointmentFunction
-                )
-                .build();
-        
-        log.info("✅ ChatClient initialized with {} functions registered", 5);
-        log.info("Registered functions: getUser, getAppointmentsByUser, createAppointment, updateAppointment, deleteAppointment");
+        startSessionCleanupScheduler();
     }
 
-    public String processUserMessage(String userMessage) {
-        // Validate and sanitize input first
+    public AgentResponse processUserMessage(String userMessage, String sessionId) {
         String sanitizedMessage = inputValidationService.validateAndSanitize(userMessage);
+        ConversationContext context = conversationContexts.computeIfAbsent(sessionId, ConversationContext::new);
+        sessionLastAccess.put(sessionId, System.currentTimeMillis());
         
-        // Extract structured information from the message to help the LLM
-        String enhancedMessage = MessageExtractor.enhanceMessageWithExtractedInfo(sanitizedMessage);
-        
-        // System prompt for planning-based approach
-        // IMPORTANT: We use a separate ChatClient WITHOUT functions for plan generation
-        // to prevent the LLM from calling functions directly instead of returning a plan
-        String systemPrompt = """
-                You are a planning assistant. Your ONLY job is to create a JSON execution plan.
-                
-                **CRITICAL INSTRUCTIONS:**
-                - DO NOT call any functions or tools
-                - DO NOT execute any actions
-                - ONLY return a JSON object with the execution plan
-                - NO explanatory text before or after the JSON
-                - NO markdown code blocks (just raw JSON)
-                
-                **Your Process:**
-                1. Analyze the user's request
-                2. Create a step-by-step plan
-                3. Return ONLY a JSON object with this exact structure:
-                
-                {
-                  "plan": "Human-readable description of the plan",
-                  "steps": [
-                    {
-                      "stepNumber": 1,
-                      "toolName": "getUser",
-                      "parameters": {
-                        "firstName": "Alperen",
-                        "lastName": "Ugus",
-                        "dob": "1990-01-01"
-                      },
-                      "expectedResult": "User object with userId",
-                      "extractFromResult": {
-                        "userId": "userId"
-                      },
-                      "onError": {
-                        "action": "abort",
-                        "message": "User not found. Please provide correct information."
-                      }
-                    },
-                    {
-                      "stepNumber": 2,
-                      "toolName": "createAppointment",
-                      "parameters": {
-                        "userId": "${userId}",
-                        "appointmentDateTime": "2024-12-25T14:00:00",
-                        "description": "dental checkup"
-                      },
-                      "expectedResult": "Appointment created successfully",
-                      "onError": {
-                        "action": "abort",
-                        "message": "Failed to create appointment"
-                      }
-                    }
-                  ]
-                }
-                
-                **Available Tools (for reference only - DO NOT call them):**
-                - getUser: Look up user by firstName, lastName, dob. Returns userId.
-                - getAppointmentsByUser: Get all appointments for a userId. Returns list of appointments with IDs.
-                - createAppointment: Create appointment. Requires userId (numeric), appointmentDateTime (ISO format), description.
-                - updateAppointment: Update appointment. Requires appointmentId (numeric), newDateTime (ISO format).
-                - deleteAppointment: Delete appointment. Requires appointmentId (numeric).
-                
-                **Parameter Resolution:**
-                - Use "${variableName}" to reference values extracted from previous steps
-                - Example: If step 1 extracts userId, step 2 can use "${userId}" in parameters
-                
-                **Extracting Values from Results:**
-                - Use JSON path expressions in "extractFromResult"
-                - Simple key: "userId" extracts the userId field directly
-                - Nested path: "appointments[0].appointmentId" extracts appointmentId from first appointment in array
-                - Array access: "appointments[0]" gets the first element, then ".appointmentId" gets the field
-                - CRITICAL: getAppointmentsByUser returns: {"userId": 1, "appointments": [{"appointmentId": 5, ...}], "message": "..."}
-                  To extract appointmentId, you MUST use: "appointments[0].appointmentId"
-                  DO NOT use just "appointmentId" - it doesn't exist at the root level!
-                - Example for getAppointmentsByUser:
-                  "extractFromResult": {
-                    "appointmentId": "appointments[0].appointmentId"
-                  }
-                
-                **Error Handling:**
-                - "abort": Stop execution and return error message
-                - "skip": Skip this step and continue
-                - "fallback": Try an alternative tool (specify fallbackTool and fallbackParameters)
-                
-                **Important:**
-                - Always include getUser as step 1 if you need a userId
-                - Extract userId from getUser result before calling createAppointment
-                - Extract appointmentId from getAppointmentsByUser result before update/delete
-                - Use correct JSON paths: "appointments[0].appointmentId" NOT "[0].id"
-                - Convert dates to ISO format: yyyy-MM-ddTHH:mm:ss
-                - Be specific about what to extract from each step's result
-                
-                **REMEMBER: Return ONLY the JSON object, nothing else.**
-                """;
-
-        log.info("Processing user message: {}", enhancedMessage);
+        context.addUserMessage(sanitizedMessage);
+        webSocketService.sendThinking(sessionId, "Analyzing your request...");
         
         try {
-            // Step 1: Ask LLM to create an execution plan
-            // Use a ChatClient WITHOUT functions to prevent LLM from calling functions directly
-            ChatClient planChatClient = ChatClient.builder(chatModel)
-                    .defaultSystem(systemPrompt)
-                    .build();
-            
-            ChatResponse planResponse = planChatClient.prompt()
-                    .user(enhancedMessage)
-                    .call()
-                    .chatResponse();
-
-            String planContent = planResponse.getResult().getOutput().getContent();
-            log.info("📋 LLM Plan Response: {}", planContent);
-            
-            // Step 2: Parse the execution plan from JSON
-            ExecutionPlan plan = parseExecutionPlan(planContent);
-            
-            if (plan == null) {
-                log.warn("⚠️ Failed to parse execution plan, falling back to legacy approach");
-                return handleLegacyResponse(planContent, enhancedMessage);
-            }
-            
-            // Step 3: Execute the plan
-            PlanExecutor executor = new PlanExecutor(functionCallbacks, objectMapper);
-            PlanExecutor.ExecutionResult result = executor.execute(plan);
-            
-            // Step 4: Generate final response based on execution result
-            if (result.isSuccess()) {
-                String finalResponse = chatClient.prompt()
-                        .system("You are a helpful assistant. Summarize what was accomplished based on the execution log.")
-                        .user("User request: " + enhancedMessage)
-                        .user("Execution log:\n" + result.getExecutionLog())
-                        .call()
-                        .content();
-                return finalResponse;
-            } else {
-                return result.getMessage();
-            }
-            
+            return executeReasoningLoop(context, sanitizedMessage, sessionId);
         } catch (Exception e) {
             log.error("Error processing message", e);
-            throw e;
+            return new AgentResponse("An error occurred. Please try again.");
         }
     }
-    
-    /**
-     * Parses execution plan from LLM response
-     */
-    private ExecutionPlan parseExecutionPlan(String content) {
-        try {
-            // Try to extract JSON from code blocks first
-            String jsonContent = content.trim();
+
+    private AgentResponse executeReasoningLoop(ConversationContext context, String userMessage, String sessionId) {
+        List<AgentResponse.ThinkingStep> thinkingSteps = new ArrayList<>();
+        int iteration = 0;
+        
+        // Build conversation history for context
+        StringBuilder conversationHistory = new StringBuilder();
+        List<ConversationMessage> recentMessages = context.getMessages();
+        int startIdx = Math.max(0, recentMessages.size() - 5); // Last 5 messages
+        for (int i = startIdx; i < recentMessages.size(); i++) {
+            ConversationMessage msg = recentMessages.get(i);
+            conversationHistory.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
+        }
+        
+        // Build the full prompt with system instructions and conversation history
+        String systemPrompt = buildSystemPrompt();
+        String fullPrompt = systemPrompt + "\n\nConversation History:\n" + conversationHistory.toString() + 
+                          "\nCurrent User Message: " + userMessage + "\n\n" +
+                          "Please respond following the ReAct protocol. Start with Thought:";
+        
+        StringBuilder scratchpad = new StringBuilder();
+        
+        while (iteration < MAX_ITERATIONS) {
+            iteration++;
             
-            // Remove markdown code blocks if present
-            if (jsonContent.contains("```json")) {
-                int start = jsonContent.indexOf("```json") + 7;
-                int end = jsonContent.indexOf("```", start);
-                if (end > start) {
-                    jsonContent = jsonContent.substring(start, end).trim();
+            // Get LLM response
+            String prompt = fullPrompt + scratchpad.toString();
+            String assistantResponse = chatLanguageModel.generate(prompt);
+            
+            log.debug("LLM Response (iteration {}): {}", iteration, assistantResponse);
+            
+            // Parse ReAct output
+            ReActParser.ReActOutput react = ReActParser.parse(assistantResponse);
+            
+            // Check for action first - if action is present, ignore final answer (LLM should wait for observation)
+            if (react.hasAction()) {
+                String toolName = react.getAction();
+                String actionInput = react.getActionInput();
+                
+                // If LLM generated Observation or Final Answer with Action, ignore them
+                // The LLM should only provide Action and Action Input, then wait
+                if (react.hasFinalAnswer()) {
+                    log.warn("LLM generated Final Answer with Action - ignoring Final Answer. LLM should wait for Observation first.");
                 }
-            } else if (jsonContent.contains("```")) {
-                int start = jsonContent.indexOf("```") + 3;
-                int end = jsonContent.indexOf("```", start);
-                if (end > start) {
-                    jsonContent = jsonContent.substring(start, end).trim();
-                }
-            }
-            
-            // Try to find JSON object in the content (handle text before/after JSON)
-            int jsonStart = jsonContent.indexOf("{");
-            if (jsonStart == -1) {
-                log.warn("⚠️ No JSON object found in response");
-                return null;
-            }
-            
-            // Find matching closing brace (handle nested objects)
-            int braceCount = 0;
-            int jsonEnd = -1;
-            for (int i = jsonStart; i < jsonContent.length(); i++) {
-                char c = jsonContent.charAt(i);
-                if (c == '{') {
-                    braceCount++;
-                } else if (c == '}') {
-                    braceCount--;
-                    if (braceCount == 0) {
-                        jsonEnd = i;
-                        break;
-                    }
-                }
-            }
-            
-            if (jsonEnd > jsonStart) {
-                jsonContent = jsonContent.substring(jsonStart, jsonEnd + 1);
+                
+                // Log thinking step
+                AgentResponse.ThinkingStep step = new AgentResponse.ThinkingStep();
+                step.setThinking(react.getThought());
+                step.setToolName(toolName);
+                thinkingSteps.add(step);
+                
+                // Send thinking update
+                webSocketService.sendThinking(sessionId, react.getThought());
+                
+                // Execute tool
+                String observation = executeTool(toolName, actionInput);
+                step.setToolResult(observation);
+                
+                // Add to scratchpad for next iteration - explicitly tell LLM to continue
+                scratchpad.append("\n\nThought: ").append(react.getThought());
+                scratchpad.append("\nAction: ").append(toolName);
+                scratchpad.append("\nAction Input: ").append(actionInput);
+                scratchpad.append("\nObservation: ").append(observation);
+                scratchpad.append("\n\nNow provide your next Thought based on the Observation above, then either another Action or Final Answer.");
+                
+                log.debug("Tool executed: {} -> {}", toolName, observation);
+                // Continue to next iteration - LLM will see the Observation and provide next Thought
+            } else if (react.hasFinalAnswer()) {
+                // Final answer without action - task is complete
+                context.addAssistantMessage(react.getFinalAnswer());
+                webSocketService.sendFinalResponse(sessionId, react.getFinalAnswer());
+                return new AgentResponse(react.getFinalAnswer(), thinkingSteps);
             } else {
-                log.warn("⚠️ Could not find matching closing brace for JSON object");
-                return null;
+                // No action or final answer - treat as final response
+                String finalResponse = assistantResponse.trim();
+                context.addAssistantMessage(finalResponse);
+                webSocketService.sendFinalResponse(sessionId, finalResponse);
+                return new AgentResponse(finalResponse, thinkingSteps);
             }
-            
-            log.info("🔍 Parsing execution plan from JSON: {}", jsonContent.substring(0, Math.min(500, jsonContent.length())));
-            ExecutionPlan plan = objectMapper.readValue(jsonContent, ExecutionPlan.class);
-            log.info("✅ Successfully parsed execution plan with {} steps", 
-                    plan.getSteps() != null ? plan.getSteps().size() : 0);
-            return plan;
-        } catch (Exception e) {
-            log.error("❌ Failed to parse execution plan: {}", e.getMessage());
-            return null;
         }
+        
+        return new AgentResponse("I've reached my reasoning limit. Could you please be more specific?", thinkingSteps);
+    }
+
+    private String executeTool(String toolName, String actionInput) {
+        try {
+            // Parse action input JSON
+            JsonNode inputNode = objectMapper.readTree(actionInput);
+            
+            // Route to appropriate tool method
+            switch (toolName) {
+                case "getUser":
+                    String firstName = inputNode.has("firstName") ? inputNode.get("firstName").asText() : null;
+                    String lastName = inputNode.has("lastName") ? inputNode.get("lastName").asText() : null;
+                    String dob = inputNode.has("dob") ? inputNode.get("dob").asText() : null;
+                    return toolService.getUser(firstName, lastName, dob);
+                    
+                case "getAppointmentsByUser":
+                    Long userId = inputNode.get("userId").asLong();
+                    return toolService.getAppointmentsByUser(userId);
+                    
+                case "createAppointment":
+                    Long createUserId = inputNode.get("userId").asLong();
+                    String dateTime = inputNode.get("appointmentDateTime").asText();
+                    String description = inputNode.get("description").asText();
+                    return toolService.createAppointment(createUserId, dateTime, description);
+                    
+                case "updateAppointment":
+                    Long appointmentId = inputNode.get("appointmentId").asLong();
+                    String newDateTime = inputNode.get("newDateTime").asText();
+                    return toolService.updateAppointment(appointmentId, newDateTime);
+                    
+                case "deleteAppointment":
+                    Long deleteAppointmentId = inputNode.get("appointmentId").asLong();
+                    return toolService.deleteAppointment(deleteAppointmentId);
+                    
+                default:
+                    return "{\"error\": \"Unknown tool: " + toolName + "\"}";
+            }
+        } catch (Exception e) {
+            log.error("Error executing tool {} with input {}", toolName, actionInput, e);
+            return "{\"error\": \"Error executing tool: " + e.getMessage() + "\"}";
+        }
+    }
+
+    private String buildSystemPrompt() {
+        return """
+                You are an AI Appointment Assistant. Your goal is to manage user records and schedules with strict adherence to the ReAct pattern.
+
+                ### OPERATIONAL RULES:
+                1. NEVER guess a ID (userId or appointmentId). You MUST use the search tools to retrieve them.
+                2. If a tool returns multiple results, you MUST present the options to the user and ask for a selection before proceeding.
+                3. Before executing 'create', 'update', or 'delete' actions, summarize the details and ask for user confirmation.
+
+                ### AVAILABLE TOOLS:
+                - getUser(firstName, lastName, dob): Returns matching users. All parameters are optional.
+                - getAppointmentsByUser(userId): Lists all appointments for a specific ID.
+                - createAppointment(userId, appointmentDateTime, description): Books a new slot.
+                - updateAppointment(appointmentId, newDateTime): Modifies an existing slot.
+                - deleteAppointment(appointmentId): Cancels a specific slot.
+
+                ### THE REACT PROTOCOL:
+                CRITICAL: You MUST follow this pattern exactly:
+                1. Thought: Explicitly state what information you have and what you need to fetch next.
+                2. Action: Call one (and only one) of the tools above using proper syntax.
+                3. Action Input: Provide the JSON parameters for the tool.
+                4. STOP HERE - DO NOT generate Observation or Final Answer after Action.
+                5. Wait for the system to provide the Observation (the tool result).
+                6. After receiving Observation, provide a new Thought, then either another Action or Final Answer.
+                
+                IMPORTANT RULES:
+                - NEVER generate an Observation yourself - the system will provide it after executing the tool
+                - NEVER include both Action and Final Answer in the same response
+                - After providing Action and Action Input, STOP and wait for Observation
+                - Only provide Final Answer when the task is complete and you have all needed information
+
+                ### EXAMPLE INTERACTION:
+                User: "Check my upcoming appointments. My name is [First Name] [Last Name]."
+                Thought: I need the userId for this person to fetch their appointments. I will search by name first.
+                Action: getUser
+                Action Input: {"firstName": "[First Name]", "lastName": "[Last Name]"}
+                Observation: [{"userId": "[ID_001]", "firstName": "[First Name]", "lastName": "[Last Name]", "dob": "[DOB_DATA]"}]
+                Thought: I have retrieved the userId. Now I can look up the specific appointments.
+                Action: getAppointmentsByUser
+                Action Input: {"userId": "[ID_001]"}
+                Observation: [{"appointmentId": "[APP_99]", "dateTime": "[ISO_DATE_TIME]", "description": "[TEXT]"}]
+                Final Answer: I found one appointment for [TEXT] scheduled for [ISO_DATE_TIME].
+
+                ### IMPORTANT FORMATTING:
+                - Always use the exact format: "Thought:", "Action:", "Action Input:", "Observation:", "Final Answer:"
+                - Action Input must be valid JSON
+                - Only call ONE tool per iteration
+                - CRITICAL: After providing Action and Action Input, STOP. Do NOT generate Observation or Final Answer.
+                - The system will execute the tool and provide the Observation in the next turn
+                - Only after receiving the Observation should you provide a new Thought and continue
+                """;
+    }
+
+    private void startSessionCleanupScheduler() {
+        sessionCleanupScheduler.scheduleWithFixedDelay(() -> {
+            long now = System.currentTimeMillis();
+            sessionLastAccess.entrySet().removeIf(entry -> (now - entry.getValue()) > SESSION_TIMEOUT_MS);
+        }, 1, 1, TimeUnit.HOURS);
     }
     
     /**
-     * Fallback to legacy approach if plan parsing fails
+     * Retrieves the conversation history for a given session ID
      */
-    private String handleLegacyResponse(String content, String enhancedMessage) {
-        // Keep the old logic as fallback
-        log.info("Using legacy tool call parsing approach");
-        
-        // Try to parse tool calls from the content
-        List<ToolCallParser.ToolCall> parsedToolCalls = ToolCallParser.parseToolCallsFromText(content);
-        
-        if (!parsedToolCalls.isEmpty()) {
-            StringBuilder toolResults = new StringBuilder();
-            for (ToolCallParser.ToolCall toolCall : parsedToolCalls) {
-                FunctionCallback callback = functionCallbacks.get(toolCall.getName());
-                if (callback != null) {
-                    try {
-                        String argumentsJson = objectMapper.writeValueAsString(toolCall.getParameters());
-                        Object result = callback.call(argumentsJson);
-                        toolResults.append("Tool '").append(toolCall.getName())
-                                .append("' executed. Result: ").append(result).append("\n");
-                    } catch (Exception e) {
-                        log.error("Error executing tool: {}", e.getMessage());
-                    }
-                }
-            }
-            return "Executed " + parsedToolCalls.size() + " tool(s). " + toolResults.toString();
+    public List<ConversationMessage> getConversationHistory(String sessionId) {
+        ConversationContext context = conversationContexts.get(sessionId);
+        if (context == null) {
+            return new ArrayList<>();
         }
-        
-        return "I apologize, but I couldn't process your request. Please try rephrasing it.";
+        return context.getMessages();
     }
 }

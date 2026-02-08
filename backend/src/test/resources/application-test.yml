@@ -13,13 +13,11 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
   
-  ai:
+  langchain4j:
     ollama:
       base-url: http://localhost:11434
-      chat:
-        options:
-          model: llama3.2
-          temperature: 0.7
+      model: llama3.1
+      temperature: 0.7
 
 logging:
   level:

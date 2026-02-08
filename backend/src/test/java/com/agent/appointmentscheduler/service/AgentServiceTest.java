@@ -24,8 +24,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestPropertySource(properties = {
     "spring.datasource.url=jdbc:h2:mem:testdb",
     "spring.jpa.hibernate.ddl-auto=create-drop",
-    "spring.ai.ollama.base-url=http://localhost:11434",
-    "spring.ai.ollama.chat.options.model=llama3.2"
+    "langchain4j.ollama.base-url=http://localhost:11434",
+    "langchain4j.ollama.model=llama3.1"
 })
 @Transactional
 class AgentServiceTest {

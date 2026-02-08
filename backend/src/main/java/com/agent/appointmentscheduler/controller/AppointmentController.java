@@ -1,6 +1,7 @@
 package com.agent.appointmentscheduler.controller;
 
 import com.agent.appointmentscheduler.model.Appointment;
+import com.agent.appointmentscheduler.model.User;
 import com.agent.appointmentscheduler.repository.AppointmentRepository;
 import com.agent.appointmentscheduler.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
@@ -8,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/appointments")
@@ -22,8 +24,23 @@ public class AppointmentController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Appointment>> getAllAppointments() {
-        return ResponseEntity.ok(appointmentRepository.findAll());
+    public ResponseEntity<List<AppointmentWithUserResponse>> getAllAppointments() {
+        List<Appointment> appointments = appointmentRepository.findAll();
+        List<AppointmentWithUserResponse> response = appointments.stream()
+                .map(appointment -> {
+                    Optional<User> user = userRepository.findById(appointment.getUserId());
+                    String userName = user.map(u -> u.getFirstName() + " " + u.getLastName())
+                            .orElse("Unknown User");
+                    return new AppointmentWithUserResponse(
+                            appointment.getId(),
+                            appointment.getUserId(),
+                            userName,
+                            appointment.getAppointmentDateTime(),
+                            appointment.getDescription()
+                    );
+                })
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/user/{userId}")
@@ -45,5 +62,13 @@ public class AppointmentController {
     }
 
     public record AppointmentCountResponse(long count) {}
+    
+    public record AppointmentWithUserResponse(
+            Long id,
+            Long userId,
+            String userName,
+            java.time.LocalDateTime appointmentDateTime,
+            String description
+    ) {}
 }
 

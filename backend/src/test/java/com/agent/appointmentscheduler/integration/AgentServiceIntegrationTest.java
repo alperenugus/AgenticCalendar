@@ -1,5 +1,6 @@
 package com.agent.appointmentscheduler.integration;
 
+import com.agent.appointmentscheduler.model.AgentResponse;
 import com.agent.appointmentscheduler.model.Appointment;
 import com.agent.appointmentscheduler.model.User;
 import com.agent.appointmentscheduler.repository.AppointmentRepository;
@@ -36,8 +37,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestPropertySource(properties = {
     "spring.datasource.url=jdbc:h2:mem:testdb",
     "spring.jpa.hibernate.ddl-auto=create-drop",
-    "spring.ai.ollama.base-url=http://localhost:11434",
-    "spring.ai.ollama.chat.options.model=llama3.2"
+    "langchain4j.ollama.base-url=http://localhost:11434",
+    "langchain4j.ollama.model=llama3.1"
 })
 @Transactional
 @Disabled("Requires LLM connection (Ollama or OpenAI). Enable when LLM is available.")
@@ -53,6 +54,7 @@ class AgentServiceIntegrationTest {
     private AppointmentRepository appointmentRepository;
 
     private User testUser;
+    private static final String TEST_SESSION_ID = "test-session-123";
 
     @BeforeEach
     void setUp() {
@@ -73,11 +75,12 @@ class AgentServiceIntegrationTest {
         String userMessage = "Book an appointment for Alperen Ugus born on 1990-01-01 for tomorrow at 2 PM for a dental checkup";
 
         // When: Process the message through the agent
-        String response = agentService.processUserMessage(userMessage);
+        AgentResponse response = agentService.processUserMessage(userMessage, TEST_SESSION_ID);
 
         // Then: Verify the response and that an appointment was created
         assertThat(response).isNotNull();
-        assertThat(response).isNotEmpty();
+        assertThat(response.getFinalResponse()).isNotNull();
+        assertThat(response.getFinalResponse()).isNotEmpty();
 
         // Verify appointment was created (if the agent successfully called the tools)
         // Note: This depends on the LLM actually calling the functions correctly
@@ -93,11 +96,12 @@ class AgentServiceIntegrationTest {
         String userMessage = "Book an appointment for John Doe";
 
         // When: Process the message
-        String response = agentService.processUserMessage(userMessage);
+        AgentResponse response = agentService.processUserMessage(userMessage, TEST_SESSION_ID);
 
         // Then: Should ask for more information
         assertThat(response).isNotNull();
-        assertThat(response).isNotEmpty();
+        assertThat(response.getFinalResponse()).isNotNull();
+        assertThat(response.getFinalResponse()).isNotEmpty();
         // The agent should ask for DOB or more details
     }
 
@@ -117,11 +121,12 @@ class AgentServiceIntegrationTest {
         );
 
         // When: Process the update request
-        String response = agentService.processUserMessage(userMessage);
+        AgentResponse response = agentService.processUserMessage(userMessage, TEST_SESSION_ID);
 
         // Then: Should process the update
         assertThat(response).isNotNull();
-        assertThat(response).isNotEmpty();
+        assertThat(response.getFinalResponse()).isNotNull();
+        assertThat(response.getFinalResponse()).isNotEmpty();
     }
 
     @Test
@@ -138,11 +143,12 @@ class AgentServiceIntegrationTest {
         String userMessage = String.format("Cancel appointment %d", appointmentId);
 
         // When: Process the delete request
-        String response = agentService.processUserMessage(userMessage);
+        AgentResponse response = agentService.processUserMessage(userMessage, TEST_SESSION_ID);
 
         // Then: Should process the deletion
         assertThat(response).isNotNull();
-        assertThat(response).isNotEmpty();
+        assertThat(response.getFinalResponse()).isNotNull();
+        assertThat(response.getFinalResponse()).isNotEmpty();
     }
 }
 

@@ -125,7 +125,7 @@ function AppointmentTable({ refreshTrigger }) {
                       ID
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-slate-300">
-                      User ID
+                      User Name
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-slate-300">
                       Date & Time
@@ -150,7 +150,7 @@ function AppointmentTable({ refreshTrigger }) {
                       <td className="py-3 px-4 text-sm text-slate-300">
                         <div className="flex items-center gap-2">
                           <User className="w-4 h-4 text-green-400" />
-                          {appointment.userId}
+                          {appointment.userName || `User ${appointment.userId}`}
                         </div>
                       </td>
                       <td className="py-3 px-4 text-sm text-slate-300">
