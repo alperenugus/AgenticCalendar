@@ -70,7 +70,12 @@ public class AgentService {
             return executeReasoningLoop(context, sanitizedMessage, sessionId);
         } catch (Exception e) {
             log.error("Error processing message", e);
-            return new AgentResponse("An error occurred. Please try again.");
+            String errorMessage = e.getMessage();
+            if (errorMessage != null && (errorMessage.contains("rate_limit") || errorMessage.contains("tokens per day"))) {
+                // Rate limit errors are already handled in executeReasoningLoop, but catch here as backup
+                return new AgentResponse("I've reached the API rate limit. Please try again in a few minutes.");
+            }
+            return new AgentResponse("An error occurred while processing your request. Please try again.");
         }
     }
 
