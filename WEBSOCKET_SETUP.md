@@ -58,3 +58,4 @@ npm install sockjs-client @stomp/stompjs
 
 Each chat session gets a unique session ID. The frontend generates one on mount and passes it in the `X-Session-Id` header. This ensures WebSocket messages are routed to the correct client.
 
+

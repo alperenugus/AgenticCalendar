@@ -39,7 +39,18 @@ public class AppointmentService {
         if (!appointmentRepository.existsById(appointmentId)) {
             throw new IllegalArgumentException("Appointment not found with id: " + appointmentId);
         }
+        
+        // Security: Prevent bulk deletion - ensure we're not deleting all appointments
+        long totalAppointments = appointmentRepository.count();
+        if (totalAppointments <= 1) {
+            throw new SecurityException("Cannot delete the last appointment in the system. This is a security measure to prevent database wipe.");
+        }
+        
         appointmentRepository.deleteById(appointmentId);
+    }
+    
+    public long getTotalAppointmentCount() {
+        return appointmentRepository.count();
     }
 
     public List<Appointment> getAppointmentsByUserId(Long userId) {

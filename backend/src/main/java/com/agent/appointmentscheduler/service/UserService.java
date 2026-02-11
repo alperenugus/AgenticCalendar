@@ -151,7 +151,18 @@ public class UserService {
         if (!userRepository.existsById(userId)) {
             throw new IllegalArgumentException("User with ID " + userId + " not found");
         }
+        
+        // Security: Prevent deleting the last user in the system
+        long totalUsers = userRepository.count();
+        if (totalUsers <= 1) {
+            throw new SecurityException("Cannot delete the last user in the system. This is a security measure to prevent database wipe.");
+        }
+        
         userRepository.deleteById(userId);
+    }
+    
+    public long getTotalUserCount() {
+        return userRepository.count();
     }
 }
 

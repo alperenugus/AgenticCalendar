@@ -193,7 +193,10 @@ public class AppointmentToolService {
           "delete, or remove an appointment. Keywords: 'cancel', 'delete', 'remove', 'cancel appointment'. " +
           "If the appointmentId is not provided, first call getUser to get the userId, then call " +
           "getAppointmentsByUser to find the appointment. Requires: appointmentId (numeric). This permanently " +
-          "removes the appointment - use updateAppointment if the user wants to change the time instead.")
+          "removes the appointment - use updateAppointment if the user wants to change the time instead. " +
+          "SECURITY: You can only delete one appointment at a time. You cannot delete all appointments in the system. " +
+          "If a user wants to delete all their appointments, you can delete them one by one, but you must never " +
+          "delete all appointments in the entire system.")
     public String deleteAppointment(Long appointmentId) {
         log.info("🔵 deleteAppointment CALLED with appointmentId={}", appointmentId);
         try {
@@ -205,6 +208,9 @@ public class AppointmentToolService {
                 "{\"appointmentId\": %d, \"message\": \"Appointment deleted successfully\"}",
                 appointmentId
             );
+        } catch (SecurityException e) {
+            log.warn("Security violation: {}", e.getMessage());
+            return String.format("{\"error\": \"Security restriction: %s\"}", e.getMessage());
         } catch (Exception e) {
             log.error("Error deleting appointment: {}", e.getMessage(), e);
             return String.format("{\"error\": \"Error deleting appointment: %s\"}", e.getMessage());
@@ -283,10 +289,23 @@ public class AppointmentToolService {
     @Tool("Delete a user from the system permanently. Use this when the user explicitly wants to remove, " +
           "delete, or unregister a user account. Keywords: 'delete user', 'remove user', 'unregister'. " +
           "If the userId is not provided, first call getUser to find the user. Requires: userId (numeric). " +
+          "SECURITY: Before deleting a user, you MUST first check if they have appointments using getAppointmentsByUser. " +
+          "If the user has appointments, inform the user that they need to delete all appointments first, or ask for " +
+          "confirmation to delete the user and all their appointments. You cannot delete the last user in the system. " +
           "WARNING: This permanently removes the user and all their appointments. Use with caution.")
     public String deleteUser(Long userId) {
         log.info("🔵 deleteUser CALLED with userId={}", userId);
         try {
+            // Security: Check if user has appointments before deletion
+            List<Appointment> userAppointments = appointmentService.getAppointmentsByUserId(userId);
+            if (userAppointments != null && !userAppointments.isEmpty()) {
+                return String.format(
+                    "{\"error\": \"Cannot delete user %d: User has %d active appointment(s). " +
+                    "Please delete all appointments first using deleteAppointment, or explicitly confirm deletion of user and all appointments.\"}",
+                    userId, userAppointments.size()
+                );
+            }
+            
             log.info("Deleting user: userId={}", userId);
             userService.deleteUser(userId);
             log.info("User deleted successfully: id={}", userId);
@@ -295,6 +314,9 @@ public class AppointmentToolService {
                 "{\"userId\": %d, \"message\": \"User deleted successfully\"}",
                 userId
             );
+        } catch (SecurityException e) {
+            log.warn("Security violation: {}", e.getMessage());
+            return String.format("{\"error\": \"Security restriction: %s\"}", e.getMessage());
         } catch (Exception e) {
             log.error("Error deleting user: {}", e.getMessage(), e);
             return String.format("{\"error\": \"Error deleting user: %s\"}", e.getMessage());
