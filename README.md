@@ -110,13 +110,13 @@ User: "Update my appointment"
 - **Java 21** or higher
 - **Maven 3.6+**
 - **Docker** and **Docker Compose** (for PostgreSQL)
-- **Ollama** (for local LLM) OR **OpenAI API Key** (for cloud LLM)
+- **Groq API Key** (FREE - recommended) OR **OpenAI API Key** (for cloud LLM)
 
 ### System Requirements
 
-- **RAM**: Minimum 8GB (16GB recommended for Ollama)
-- **Disk Space**: ~5GB for dependencies and models
-- **Network**: Internet connection for Maven dependencies
+- **RAM**: Minimum 4GB (8GB recommended)
+- **Disk Space**: ~2GB for dependencies
+- **Network**: Internet connection for Maven dependencies and LLM API calls
 
 ## 🚀 Installation & Setup
 
@@ -134,11 +134,10 @@ chmod +x setup.sh
 ```
 
 The script will:
-- ✅ Check all prerequisites (Java 21+, Maven 3.6+, Node.js 18+, Docker, Ollama)
+- ✅ Check all prerequisites (Java 21+, Maven 3.6+, Node.js 18+, Docker)
 - ✅ Download and compile backend dependencies
 - ✅ Set up PostgreSQL in Docker (if Docker is available)
 - ✅ Install frontend dependencies
-- ✅ Pull required Ollama model (if Ollama is installed)
 - ✅ Provide clear error messages if anything fails
 
 ### Manual Setup
@@ -167,34 +166,25 @@ cd frontend
 npm install
 ```
 
-#### Step 4: Install Ollama (Recommended for Local Development)
+#### Step 4: Configure LLM Provider
 
-Ollama is a free, open-source tool for running LLMs locally.
+The application defaults to **Groq** (FREE tier: 100,000 tokens/day). Get your API key:
 
-**macOS**
-```bash
-brew install ollama
-```
+1. Sign up at [https://console.groq.com](https://console.groq.com)
+2. Get your API key from [https://console.groq.com/keys](https://console.groq.com/keys)
+3. Set the environment variable:
+   ```bash
+   export LANGCHAIN4J_GROQ_API_KEY=your-api-key-here
+   ```
 
-**Linux**
-```bash
-curl -fsSL https://ollama.com/install.sh | sh
-```
+**Alternative: Ollama (Local Development Only)**
+If you prefer to run LLMs locally, you can use Ollama:
+- Install: `brew install ollama` (macOS) or visit [https://ollama.com](https://ollama.com)
+- Start: `ollama serve`
+- Pull model: `ollama pull llama3.1`
+- Set: `export LANGCHAIN4J_PROVIDER=ollama`
 
-**Windows**
-Download from [https://ollama.com/download](https://ollama.com/download)
-
-The system requires a model that supports structured output. Use one of these:
-
-```bash
-# Recommended: llama3.1 (supports structured output)
-ollama pull llama3.1
-
-# Alternative: mistral (also supports structured output)
-ollama pull mistral
-```
-
-**Important**: `llama3.2` does NOT support structured output well. Use `llama3.1` or `mistral`.
+**Note**: Ollama is for local development only. For production/deployment, use Groq or OpenAI.
 
 #### Step 5: Start Services
 
@@ -202,11 +192,6 @@ ollama pull mistral
 ```bash
 cd backend
 docker-compose up -d
-```
-
-**Start Ollama** (if using local LLM):
-```bash
-ollama serve
 ```
 
 **Start Backend**:
@@ -237,21 +222,28 @@ The frontend will be available at `http://localhost:5173`
 Edit `backend/src/main/resources/application.yml`:
 
 ```yaml
-spring:
-  langchain4j:
-    # Ollama Configuration (Default - FREE)
-    ollama:
-      base-url: http://localhost:11434
-      model: llama3.1  # Use llama3.1 or mistral
-      temperature: 0.7
-
-    # Groq Configuration (Default - FREE tier: 100,000 tokens/day)
-    # Get API key: https://console.groq.com/keys
-    groq:
-      api-key: ${LANGCHAIN4J_GROQ_API_KEY:}
-      model: llama-3.1-8b-instant  # Smaller model to avoid rate limits
-      # Alternative: llama-3.3-70b-versatile (more capable but token-heavy)
-      temperature: 0.7
+langchain4j:
+  # Provider selection: "groq" is default (free tier: 100,000 tokens/day)
+  # Set LANGCHAIN4J_PROVIDER=ollama to use local Ollama instead
+  provider: groq  # Default to Groq (works both locally and on Railway)
+  
+  # Groq Configuration (FREE tier: 100,000 tokens/day)
+  # Get API key: https://console.groq.com/keys
+  # Set LANGCHAIN4J_GROQ_API_KEY environment variable
+  groq:
+    api-key: ${LANGCHAIN4J_GROQ_API_KEY:}
+    # llama-3.1-8b-instant: Fast, efficient, uses ~10x fewer tokens than 70b models
+    # llama-3.3-70b-versatile: More capable but uses many more tokens (may hit rate limits)
+    model: llama-3.1-8b-instant  # Switched to smaller model to avoid rate limits
+    # Alternative models: llama-3.3-70b-versatile (more capable but token-heavy), mixtral-8x7b-32768
+    temperature: 0.7
+  
+  # Ollama Configuration (for local development - optional)
+  # To use Ollama, set LANGCHAIN4J_PROVIDER=ollama and run: docker run -d -p 11434:11434 ollama/ollama
+  ollama:
+    base-url: ${LANGCHAIN4J_OLLAMA_BASE_URL:http://localhost:11434}
+    model: ${LANGCHAIN4J_OLLAMA_MODEL:llama3.1}
+    temperature: ${LANGCHAIN4J_OLLAMA_TEMPERATURE:0.7}
     
     # OpenAI Configuration (Optional - Requires API Key)
     # Set LANGCHAIN4J_PROVIDER=openai to use OpenAI
@@ -427,28 +419,30 @@ The application already has debug logging enabled. Check logs for:
 
 ### Common Issues
 
-#### 1. Ollama Connection Error
+#### 1. Groq Rate Limit Error
 
-**Symptom**: `Connection refused` or `Failed to connect to Ollama`
+**Symptom**: `Rate limit reached` or `tokens per day limit`
+
+**Solution**:
+- The free tier has a 100,000 tokens/day limit
+- Wait until the next day or switch to a different model
+- Consider using `llama-3.1-8b-instant` (more token-efficient) instead of `llama-3.3-70b-versatile`
+- For production, consider upgrading to a paid Groq tier or using OpenAI
+
+#### 2. Missing Groq API Key
+
+**Symptom**: `API key is required` or authentication errors
 
 **Solution**:
 ```bash
-# Check if Ollama is running
-curl http://localhost:11434/api/tags
+# Set the API key as environment variable
+export LANGCHAIN4J_GROQ_API_KEY=your-api-key-here
 
-# If not running, start it
-ollama serve
+# Or add to your shell profile (~/.bashrc, ~/.zshrc, etc.)
+echo 'export LANGCHAIN4J_GROQ_API_KEY=your-api-key-here' >> ~/.zshrc
 ```
 
-#### 2. Model Not Found
-
-**Symptom**: `model 'llama3.1' not found`
-
-**Solution**:
-```bash
-# Pull the required model
-ollama pull llama3.1
-```
+Get your API key from: [https://console.groq.com/keys](https://console.groq.com/keys)
 
 #### 3. Database Connection Error
 
@@ -463,7 +457,25 @@ docker-compose up -d
 docker ps
 ```
 
-#### 4. LLM Not Following ReAct Pattern
+#### 4. Ollama Connection Error (If Using Local LLM)
+
+**Symptom**: `Connection refused` or `Failed to connect to Ollama`
+
+**Solution**:
+```bash
+# Check if Ollama is running
+curl http://localhost:11434/api/tags
+
+# If not running, start it
+ollama serve
+
+# Pull the required model
+ollama pull llama3.1
+```
+
+**Note**: Ollama is optional and only for local development. The default is Groq.
+
+#### 5. LLM Not Following ReAct Pattern
 
 **Symptom**: LLM generates Observations instead of waiting for tool results
 
@@ -509,10 +521,11 @@ Typical response times:
 
 ### Optimization Tips
 
-1. **Use Local Ollama**: Faster than cloud APIs (no network latency)
+1. **Use Groq's Efficient Models**: `llama-3.1-8b-instant` uses ~10x fewer tokens than 70b models
 2. **Database Indexing**: Already configured for `firstName`, `lastName`, `dob`
 3. **Connection Pooling**: HikariCP is configured by default
 4. **Caching**: Consider adding Redis for frequently accessed data
+5. **Local Development**: Use Ollama for faster local testing (no network latency)
 
 ### Monitoring
 

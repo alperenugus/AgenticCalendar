@@ -100,32 +100,22 @@ SPRING_DATASOURCE_URL=jdbc:postgresql://...
 SPRING_DATASOURCE_USERNAME=...
 SPRING_DATASOURCE_PASSWORD=...
 
-# LangChain4j - FREE options available! See FREE_LLM_SETUP.md
-# Ollama (http://localhost:11434) won't work on Railway - it's for local dev only
+# LangChain4j - Groq is the default (FREE tier: 100,000 tokens/day)
+# Get API key: https://console.groq.com/keys
 
-# Option 1: Groq (FREE - Recommended! 100,000 tokens/day)
+# Groq (FREE - Default! 100,000 tokens/day)
 LANGCHAIN4J_PROVIDER=groq
 LANGCHAIN4J_GROQ_API_KEY=your-groq-api-key-here
 LANGCHAIN4J_GROQ_MODEL=llama-3.1-8b-instant  # Smaller model to avoid rate limits
 LANGCHAIN4J_GROQ_TEMPERATURE=0.7
 
-# Option 2: Google Gemini (FREE - 1,500 requests/day)
-# LANGCHAIN4J_PROVIDER=gemini
-# LANGCHAIN4J_GOOGLE_GEMINI_API_KEY=your-gemini-api-key-here
-# LANGCHAIN4J_GOOGLE_GEMINI_MODEL=gemini-1.5-flash
-# LANGCHAIN4J_GOOGLE_GEMINI_TEMPERATURE=0.7
-
-# Option 3: OpenAI (Paid - only if you need it)
+# Alternative: OpenAI (Paid - only if you need it)
 # LANGCHAIN4J_PROVIDER=openai
 # LANGCHAIN4J_OPENAI_API_KEY=sk-your-openai-api-key-here
 # LANGCHAIN4J_OPENAI_MODEL=gpt-4o-mini
 # LANGCHAIN4J_OPENAI_TEMPERATURE=0.7
 
-# Option 4: Ollama (Local development only - won't work on Railway!)
-# LANGCHAIN4J_PROVIDER=ollama
-# LANGCHAIN4J_OLLAMA_BASE_URL=http://localhost:11434
-# LANGCHAIN4J_OLLAMA_MODEL=llama3.1
-# LANGCHAIN4J_OLLAMA_TEMPERATURE=0.7
+# Note: Ollama is for local development only and won't work on Railway
 
 # Java
 JAVA_VERSION=21

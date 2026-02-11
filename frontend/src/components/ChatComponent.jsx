@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Bot, User, Loader2 } from 'lucide-react'
+import { Send, Bot, User, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import SockJS from 'sockjs-client'
@@ -132,7 +132,7 @@ function ChatComponent({ onMessageSent }) {
             {
               id: 1,
               type: 'assistant',
-              content: "Hello! I'm your AI appointment scheduling assistant. This is a **demo application** running on Groq's free tier (100,000 tokens/day limit).\n\nI can help you:\n✅ Create, view, update, or cancel appointments (one at a time)\n✅ Create new user accounts\n✅ Update user information\nHow can I assist you today?",
+              content: "Hello! I'm your AI appointment scheduling assistant. This is a **demo application** running on Groq's free tier (100,000 tokens/day limit).\n\nI can help you:\n✅ Create, view, update, or cancel appointments (one at a time)\n✅ Create new user accounts\n✅ Update user information\n\nHow can I assist you today?",
               thinking: false,
               toolCalls: null,
             },
@@ -145,7 +145,7 @@ function ChatComponent({ onMessageSent }) {
           {
             id: 1,
             type: 'assistant',
-            content: "Hello! I'm your AI appointment scheduling assistant. This is a **demo application** running on Groq's free tier (100,000 tokens/day limit).\n\nI can help you:\n✅ Create, view, update, or cancel appointments (one at a time)\n✅ Create new user accounts\n✅ Update user information\nHow can I assist you today?",
+            content: "Hello! I'm your AI appointment scheduling assistant. This is a **demo application** running on Groq's free tier (100,000 tokens/day limit).\n\nI can help you:\n✅ Create, view, update, or cancel appointments (one at a time)\n✅ Create new user accounts\n✅ Update user information\n\nHow can I assist you today?",
             thinking: false,
             toolCalls: null,
           },
@@ -283,8 +283,9 @@ function ChatComponent({ onMessageSent }) {
         ]
       })
     } else if (data.type === 'response') {
-      // Remove thinking messages and add final response
+      // Collect all thinking steps before removing them
       setMessages(prev => {
+        const thinkingSteps = prev.filter(msg => msg.type === 'thinking' || msg.thinking)
         const filtered = prev.filter(msg => msg.type !== 'thinking' && !msg.thinking)
         return [
           ...filtered,
@@ -294,6 +295,7 @@ function ChatComponent({ onMessageSent }) {
             content: data.content,
             thinking: false,
             toolCalls: null,
+            thinkingSteps: thinkingSteps.length > 0 ? thinkingSteps : null, // Store thinking steps with response
           },
         ]
       })
@@ -380,14 +382,21 @@ function ChatComponent({ onMessageSent }) {
             })
           }
           
-          // Add final response
-          newMessages.push({
+          // Collect thinking steps
+          const thinkingSteps = newMessages.filter(msg => msg.type === 'thinking')
+          const nonThinkingMessages = newMessages.filter(msg => msg.type !== 'thinking')
+          
+          // Add final response with thinking steps
+          nonThinkingMessages.push({
             id: Date.now() + 2,
             type: 'assistant',
             content: response.data.finalResponse || response.data.response || 'Response received',
             thinking: false,
             toolCalls: null,
+            thinkingSteps: thinkingSteps.length > 0 ? thinkingSteps : null,
           })
+          
+          return nonThinkingMessages
           
           return newMessages
         })
@@ -516,7 +525,12 @@ function ChatComponent({ onMessageSent }) {
                   <span className="text-sm italic">{message.content || 'Thinking...'}</span>
                 </div>
               ) : (
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                <div className="space-y-2">
+                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  {message.thinkingSteps && message.thinkingSteps.length > 0 && (
+                    <ThinkingStepsViewer steps={message.thinkingSteps} />
+                  )}
+                </div>
               )}
             </div>
             {message.type === 'user' && (
@@ -552,6 +566,73 @@ function ChatComponent({ onMessageSent }) {
           </button>
         </form>
       </div>
+    </div>
+  )
+}
+
+// Component for displaying thinking steps in an expandable section (like Gemini)
+function ThinkingStepsViewer({ steps }) {
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  if (!steps || steps.length === 0) return null
+
+  return (
+    <div className="mt-3 border-t border-slate-600 pt-2">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex items-center gap-2 text-xs text-slate-400 hover:text-slate-300 transition-colors w-full"
+      >
+        {isExpanded ? (
+          <ChevronUp className="w-4 h-4" />
+        ) : (
+          <ChevronDown className="w-4 h-4" />
+        )}
+        <span>
+          {isExpanded ? 'Hide' : 'Show'} thinking process ({steps.length} step{steps.length !== 1 ? 's' : ''})
+        </span>
+      </button>
+      {isExpanded && (
+        <div className="mt-2 space-y-3">
+          {steps.map((step, index) => (
+            <div
+              key={step.id || index}
+              className="bg-slate-800/50 rounded-lg p-3 border border-slate-700"
+            >
+              {step.content && (
+                <div className="mb-2">
+                  <div className="text-xs text-slate-400 mb-1">Thought:</div>
+                  <div className="text-xs text-slate-300 italic">{step.content}</div>
+                </div>
+              )}
+              {step.toolCalls && (
+                <div className="space-y-2">
+                  <div className="text-xs text-slate-400">
+                    🔧 Using tool: <span className="font-mono text-blue-400">{step.toolCalls.name}</span>
+                  </div>
+                  {step.toolCalls.args && (
+                    <div className="text-xs text-slate-400">
+                      <span className="text-slate-500">Arguments:</span>
+                      <pre className="mt-1 p-2 bg-slate-900 rounded text-slate-300 overflow-x-auto text-xs">
+                        {typeof step.toolCalls.args === 'string' 
+                          ? step.toolCalls.args 
+                          : JSON.stringify(step.toolCalls.args, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                  {step.toolCalls.result && (
+                    <div className="text-xs text-slate-400">
+                      <span className="text-slate-500">Result:</span>
+                      <div className="mt-1 p-2 bg-slate-900 rounded text-green-400 text-xs">
+                        {step.toolCalls.result}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
