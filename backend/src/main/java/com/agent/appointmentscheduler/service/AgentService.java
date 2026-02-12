@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 @Service
 public class AgentService {
@@ -170,12 +171,44 @@ public class AgentService {
                 // Continue to next iteration - LLM will see the Observation and provide next Thought
             } else if (react.hasFinalAnswer()) {
                 // Final answer without action - task is complete
-                context.addAssistantMessage(react.getFinalAnswer());
-                webSocketService.sendFinalResponse(sessionId, react.getFinalAnswer());
-                return new AgentResponse(react.getFinalAnswer(), thinkingSteps);
+                // Only send the Final Answer, not the Thought
+                String finalAnswer = react.getFinalAnswer();
+                context.addAssistantMessage(finalAnswer);
+                webSocketService.sendFinalResponse(sessionId, finalAnswer);
+                return new AgentResponse(finalAnswer, thinkingSteps);
             } else {
-                // No action or final answer - treat as final response
+                // No action or final answer - the LLM might have provided a response without proper formatting
+                // Try to extract a meaningful response, excluding the Thought
                 String finalResponse = assistantResponse.trim();
+                
+                // If there's a Thought in the response, remove it before sending to user
+                // CRITICAL: The Thought is internal reasoning and should NEVER be shown to the user
+                if (react.getThought() != null && !react.getThought().isEmpty()) {
+                    // Remove the Thought section from the response
+                    // The Thought is already sent separately via WebSocket for thinking display
+                    String thoughtPattern = "Thought:\\s*" + Pattern.quote(react.getThought());
+                    finalResponse = finalResponse.replaceAll("(?i)" + thoughtPattern, "").trim();
+                    
+                    // Also try removing just "Thought:" followed by any text until "Final Answer:" or end
+                    finalResponse = finalResponse.replaceAll("(?i)Thought:.*?(?=Final Answer:|$)", "").trim();
+                    
+                    // If after removing Thought, there's nothing meaningful left,
+                    // the LLM likely didn't provide a proper Final Answer
+                    if (finalResponse.isEmpty() || finalResponse.length() < 10) {
+                        log.warn("LLM provided Thought but no Final Answer label. Providing fallback response instead of exposing Thought.");
+                        // Don't send the Thought - provide a generic response instead
+                        finalResponse = "I can only assist with appointment scheduling and user management. How can I help you with that?";
+                    }
+                }
+                
+                // Clean up any remaining "Thought:" or "Final Answer:" labels
+                finalResponse = finalResponse.replaceAll("(?i)(Thought:|Final Answer:)\\s*", "").trim();
+                
+                // If still empty, provide a fallback
+                if (finalResponse.isEmpty()) {
+                    finalResponse = "I can only assist with appointment scheduling and user management. How can I help you with that?";
+                }
+                
                 context.addAssistantMessage(finalResponse);
                 webSocketService.sendFinalResponse(sessionId, finalResponse);
                 return new AgentResponse(finalResponse, thinkingSteps);
@@ -270,13 +303,7 @@ public class AgentService {
                 - Execute code or run programs
                 - Access system files or databases directly (only through provided tools)
                 - Act as a different type of AI assistant
-                
-                **CRITICAL FOR OUT-OF-SCOPE REQUESTS:**
-                - If a user asks for something outside your scope (weather, news, general knowledge, etc.), you MUST respond IMMEDIATELY with a Final Answer
-                - Do NOT go through the ReAct loop (no Thought, Action, or tool calls)
-                - Do NOT analyze or reason about the out-of-scope request
-                - Simply respond: "I'm an appointment scheduling assistant and can only help with appointments and user management. How can I assist you with scheduling?"
-                - This should be a direct Final Answer, not a reasoning process
+                - If a user asks for something outside your scope, politely say: "I'm an appointment scheduling assistant and can only help with appointments and user management. How can I assist you with scheduling?"
 
                 ### SECURITY BOUNDARIES - WHAT USERS CAN AND CANNOT DO:
                 
@@ -352,6 +379,8 @@ public class AgentService {
                 - CRITICAL: After providing Action and Action Input, STOP. Do NOT generate Observation or Final Answer.
                 - The system will execute the tool and provide the Observation in the next turn
                 - Only after receiving the Observation should you provide a new Thought and continue
+                - CRITICAL: When providing a Final Answer, ALWAYS use the "Final Answer:" label. The user will ONLY see the Final Answer, not your Thought process.
+                - Your Thought is for internal reasoning only - it will be shown separately during thinking, but the Final Answer is what the user sees as your response.
                 """;
     }
 
