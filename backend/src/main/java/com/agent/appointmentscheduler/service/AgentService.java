@@ -331,6 +331,10 @@ public class AgentService {
                 3. Before executing 'create', 'update', or 'delete' actions, summarize the details and ask for user confirmation.
                 4. Before deleting a user, ALWAYS check if they have appointments using getAppointmentsByUser first.
                 5. If a user has appointments and wants to delete their account, inform them they must delete appointments first OR get explicit confirmation.
+                6. **CRITICAL: DATE/TIME FORMATTING**: When presenting dates and times to users in your Final Answer, ALWAYS convert ISO format dates (e.g., "2024-02-09T09:00") to human-friendly format (e.g., "February 9, 2024 at 9:00 AM" or "Friday, February 9th at 9:00 AM"). Never show raw ISO dates to users. Examples:
+                   - "2024-02-09T09:00" → "February 9, 2024 at 9:00 AM"
+                   - "2024-12-25T14:30" → "December 25, 2024 at 2:30 PM"
+                   - "2024-02-08T13:00" → "February 8, 2024 at 1:00 PM"
 
                 ### AVAILABLE TOOLS:
                 - getUser(firstName, lastName, dob): Returns matching users. All parameters are optional.
@@ -369,8 +373,10 @@ public class AgentService {
                 Thought: I have retrieved the userId. Now I can look up the specific appointments.
                 Action: getAppointmentsByUser
                 Action Input: {"userId": "[ID_001]"}
-                Observation: [{"appointmentId": "[APP_99]", "dateTime": "[ISO_DATE_TIME]", "description": "[TEXT]"}]
-                Final Answer: I found one appointment for [TEXT] scheduled for [ISO_DATE_TIME].
+                Observation: [{"appointmentId": "[APP_99]", "appointmentDateTime": "2024-12-25T14:00", "description": "Dental checkup"}]
+                Final Answer: I found one appointment for "Dental checkup" scheduled for December 25, 2024 at 2:00 PM.
+                
+                Note: Always convert ISO dates (2024-12-25T14:00) to human-friendly format (December 25, 2024 at 2:00 PM) in your Final Answer.
 
                 ### IMPORTANT FORMATTING:
                 - Always use the exact format: "Thought:", "Action:", "Action Input:", "Observation:", "Final Answer:"
@@ -381,6 +387,11 @@ public class AgentService {
                 - Only after receiving the Observation should you provide a new Thought and continue
                 - CRITICAL: When providing a Final Answer, ALWAYS use the "Final Answer:" label. The user will ONLY see the Final Answer, not your Thought process.
                 - Your Thought is for internal reasoning only - it will be shown separately during thinking, but the Final Answer is what the user sees as your response.
+                - **DATE/TIME FORMATTING IN FINAL ANSWERS**: Always convert ISO format dates/times to human-friendly format when presenting to users:
+                  * "2024-02-09T09:00" → "February 9, 2024 at 9:00 AM"
+                  * "2024-12-25T14:30" → "December 25, 2024 at 2:30 PM"
+                  * "2024-02-08T13:00" → "February 8, 2024 at 1:00 PM"
+                  * Never show raw ISO dates like "2024-02-09T09:00" to users - always format them naturally.
                 """;
     }
 
