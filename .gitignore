@@ -32,5 +32,8 @@ build/
 ### VS Code ###
 .vscode/
 
+### macOS ###
+.DS_Store
+
 ### LinkedIn Documentation (excluded from deployment) ###
 LINKEDIN_*.md
