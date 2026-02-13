@@ -3,6 +3,8 @@ target/
 .git
 .gitignore
 *.md
+# Explicitly exclude LinkedIn documentation
+LINKEDIN_*.md
 node_modules/
 frontend/
 .DS_Store

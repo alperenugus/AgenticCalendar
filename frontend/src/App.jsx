@@ -31,8 +31,8 @@ function App() {
       <main className="container mx-auto px-6 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-120px)]">
           {/* Left Panel - Chat Interface */}
-          <div className="flex flex-col bg-slate-800/50 rounded-lg border border-slate-700 shadow-xl">
-            <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-700">
+          <div className="flex flex-col bg-slate-800/50 rounded-lg border border-slate-700 shadow-xl min-h-0">
+            <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-700 flex-shrink-0">
               <MessageSquare className="w-5 h-5 text-blue-400" />
               <h2 className="text-lg font-semibold text-white">Chat with Agent</h2>
             </div>
