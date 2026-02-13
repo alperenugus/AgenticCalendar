@@ -3,6 +3,7 @@ package com.agent.appointmentscheduler.service;
 import com.agent.appointmentscheduler.model.AgentResponse;
 import com.agent.appointmentscheduler.model.ConversationContext;
 import com.agent.appointmentscheduler.model.ConversationMessage;
+import com.agent.appointmentscheduler.service.RateLimitService;
 import com.agent.appointmentscheduler.tools.AppointmentToolService;
 import com.agent.appointmentscheduler.util.ReActParser;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -43,18 +44,22 @@ public class AgentService {
         return t;
     });
 
+    private final RateLimitService rateLimitService;
+
     public AgentService(
             ChatLanguageModel chatLanguageModel,
             AppointmentToolService toolService,
             InputValidationService inputValidationService,
             ObjectMapper objectMapper,
-            WebSocketService webSocketService
+            WebSocketService webSocketService,
+            RateLimitService rateLimitService
     ) {
         this.chatLanguageModel = chatLanguageModel;
         this.toolService = toolService;
         this.inputValidationService = inputValidationService;
         this.objectMapper = objectMapper;
         this.webSocketService = webSocketService;
+        this.rateLimitService = rateLimitService;
         
         startSessionCleanupScheduler();
     }
@@ -418,7 +423,15 @@ public class AgentService {
     private void startSessionCleanupScheduler() {
         sessionCleanupScheduler.scheduleWithFixedDelay(() -> {
             long now = System.currentTimeMillis();
-            sessionLastAccess.entrySet().removeIf(entry -> (now - entry.getValue()) > SESSION_TIMEOUT_MS);
+            sessionLastAccess.entrySet().removeIf(entry -> {
+                boolean shouldRemove = (now - entry.getValue()) > SESSION_TIMEOUT_MS;
+                if (shouldRemove) {
+                    String sessionId = entry.getKey();
+                    conversationContexts.remove(sessionId);
+                    rateLimitService.cleanupSession(sessionId);
+                }
+                return shouldRemove;
+            });
         }, 1, 1, TimeUnit.HOURS);
     }
     

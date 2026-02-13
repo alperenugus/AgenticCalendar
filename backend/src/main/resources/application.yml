@@ -49,6 +49,22 @@ spring:
 server:
   port: ${PORT:8080}  # Use PORT env var for Railway, default to 8080
 
+# Rate Limiting Configuration
+rate-limit:
+  # Per-session rate limits (using token bucket algorithm)
+  chat:
+    # Maximum number of requests allowed
+    capacity: ${RATE_LIMIT_CAPACITY:20}
+    # Number of tokens to refill per period
+    refill-tokens: ${RATE_LIMIT_REFILL:10}
+    # Refill period in seconds
+    refill-period-seconds: ${RATE_LIMIT_PERIOD:60}
+  # History endpoint is less resource-intensive, so higher limits
+  history:
+    capacity: ${RATE_LIMIT_HISTORY_CAPACITY:60}
+    refill-tokens: ${RATE_LIMIT_HISTORY_REFILL:30}
+    refill-period-seconds: ${RATE_LIMIT_HISTORY_PERIOD:60}
+
 # Logging
 logging:
   level:

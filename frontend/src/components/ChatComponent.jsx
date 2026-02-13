@@ -407,23 +407,47 @@ function ChatComponent({ onMessageSent }) {
       // Remove thinking indicator
       setMessages(prev => prev.filter(msg => !msg.thinking))
 
-      // Add error message
-      setMessages(prev => [
-        ...prev,
-        {
-          id: Date.now() + 2,
-          type: 'assistant',
-          content: 'Sorry, I encountered an error processing your request. Please try again.',
-          thinking: false,
-        },
-      ])
-
-      if (error.response) {
-        toast.error(`Error: ${error.response.data?.response || error.message}`)
-      } else if (error.request) {
-        toast.error('Backend server is not responding. Please make sure the Spring Boot server is running on port 8080.')
+      // Handle rate limit errors (429)
+      if (error.response?.status === 429) {
+        const retryAfter = error.response.headers['retry-after'] || error.response.headers['Retry-After']
+        const retrySeconds = retryAfter ? parseInt(retryAfter) : 60
+        const retryMinutes = Math.ceil(retrySeconds / 60)
+        
+        const rateLimitMessage = `Rate limit exceeded. Please wait ${retryMinutes} minute${retryMinutes > 1 ? 's' : ''} before sending another message. This helps protect the service from abuse.`
+        
+        setMessages(prev => [
+          ...prev,
+          {
+            id: Date.now() + 2,
+            type: 'assistant',
+            content: rateLimitMessage,
+            thinking: false,
+          },
+        ])
+        
+        toast.error(`Rate limit exceeded. Please wait ${retryMinutes} minute${retryMinutes > 1 ? 's' : ''}.`, {
+          duration: 6000,
+        })
       } else {
-        toast.error(`Error: ${error.message}`)
+        // Add error message for other errors
+        setMessages(prev => [
+          ...prev,
+          {
+            id: Date.now() + 2,
+            type: 'assistant',
+            content: 'Sorry, I encountered an error processing your request. Please try again.',
+            thinking: false,
+          },
+        ])
+
+        if (error.response) {
+          const errorMessage = error.response.data?.response || error.response.data?.finalResponse || error.message
+          toast.error(`Error: ${errorMessage}`)
+        } else if (error.request) {
+          toast.error('Backend server is not responding. Please make sure the Spring Boot server is running on port 8080.')
+        } else {
+          toast.error(`Error: ${error.message}`)
+        }
       }
       setIsLoading(false)
     }
