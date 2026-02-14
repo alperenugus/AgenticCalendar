@@ -28,31 +28,31 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-120px)]">
+      <main className="container mx-auto px-6 py-6 max-w-7xl">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 max-h-[calc(100vh-140px)]">
           {/* Left Panel - Chat Interface */}
-          <div className="flex flex-col bg-slate-800/50 rounded-lg border border-slate-700 shadow-xl min-h-0">
-            <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-700 flex-shrink-0">
-              <MessageSquare className="w-5 h-5 text-blue-400" />
-              <h2 className="text-lg font-semibold text-white">Chat with Agent</h2>
+          <div className="flex flex-col bg-slate-800/50 rounded-lg border border-slate-700 shadow-xl min-h-0 max-h-[calc(100vh-140px)]">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-700 flex-shrink-0">
+              <MessageSquare className="w-4 h-4 text-blue-400" />
+              <h2 className="text-base font-semibold text-white">Chat with Agent</h2>
             </div>
             <ChatComponent onMessageSent={handleMessageSent} />
           </div>
 
           {/* Middle Panel - Appointment Monitor */}
-          <div className="flex flex-col bg-slate-800/50 rounded-lg border border-slate-700 shadow-xl">
-            <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-700">
-              <Calendar className="w-5 h-5 text-green-400" />
-              <h2 className="text-lg font-semibold text-white">Live Appointment Monitor</h2>
+          <div className="flex flex-col bg-slate-800/50 rounded-lg border border-slate-700 shadow-xl min-h-0 max-h-[calc(100vh-140px)]">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-700 flex-shrink-0">
+              <Calendar className="w-4 h-4 text-green-400" />
+              <h2 className="text-base font-semibold text-white">Live Appointment Monitor</h2>
             </div>
             <AppointmentTable refreshTrigger={refreshTrigger} />
           </div>
 
           {/* Right Panel - Registered Users */}
-          <div className="flex flex-col bg-slate-800/50 rounded-lg border border-slate-700 shadow-xl">
-            <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-700">
-              <Users className="w-5 h-5 text-purple-400" />
-              <h2 className="text-lg font-semibold text-white">Registered Users</h2>
+          <div className="flex flex-col bg-slate-800/50 rounded-lg border border-slate-700 shadow-xl min-h-0 max-h-[calc(100vh-140px)]">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-700 flex-shrink-0">
+              <Users className="w-4 h-4 text-purple-400" />
+              <h2 className="text-base font-semibold text-white">Registered Users</h2>
             </div>
             <UserTable refreshTrigger={refreshTrigger} />
           </div>
