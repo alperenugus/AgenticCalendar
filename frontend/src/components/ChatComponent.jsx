@@ -135,7 +135,7 @@ function ChatComponent({ onMessageSent }) {
             {
               id: 1,
               type: 'assistant',
-              content: "Hello! I'm your AI appointment scheduling assistant. This is a **demo application** running on Groq's free tier (100,000 tokens/day limit).\n\nI can help you:\n✅ Create, view, update, or cancel appointments (one at a time)\n✅ Create new user accounts\n✅ Update user information\n\nHow can I assist you today?",
+              content: "Hello! I'm your AI appointment scheduling assistant.\n\nI can help you:\n✅ Create, view, update, or cancel appointments\n✅ Create new user accounts\n✅ Update user information\n\nHow can I assist you today?",
               thinking: false,
               toolCalls: null,
             },
@@ -148,7 +148,7 @@ function ChatComponent({ onMessageSent }) {
           {
             id: 1,
             type: 'assistant',
-            content: "Hello! I'm your AI appointment scheduling assistant. This is a **demo application** running on Groq's free tier (100,000 tokens/day limit).\n\nI can help you:\n✅ Create, view, update, or cancel appointments (one at a time)\n✅ Create new user accounts\n✅ Update user information\n\nHow can I assist you today?",
+            content: "Hello! I'm your AI appointment scheduling assistant.\n\nI can help you:\n✅ Create, view, update, or cancel appointments\n✅ Create new user accounts\n✅ Update user information\n\nHow can I assist you today?",
             thinking: false,
             toolCalls: null,
           },
