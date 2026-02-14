@@ -27,7 +27,9 @@ public class AgentController {
     @PostMapping("/chat")
     public ResponseEntity<AgentResponse> chat(
             @RequestBody AgentRequest request,
-            @RequestHeader(value = "X-Session-Id", required = false) String sessionId) {
+            @RequestHeader(value = "X-Session-Id", required = false) String sessionId,
+            @RequestHeader(value = "X-Google-User-Id", required = false) String googleUserId,
+            @RequestHeader(value = "X-Google-User-Email", required = false) String googleUserEmail) {
         try {
             // Use provided session ID or default
             String effectiveSessionId = sessionId != null && !sessionId.trim().isEmpty() 
@@ -37,7 +39,12 @@ public class AgentController {
             // Check rate limit before processing
             rateLimitService.checkChatRateLimit(effectiveSessionId);
             
-            AgentResponse response = agentService.processUserMessage(request.message(), effectiveSessionId);
+            AgentResponse response = agentService.processUserMessage(
+                    request.message(), 
+                    effectiveSessionId, 
+                    googleUserId, 
+                    googleUserEmail
+            );
             
             // Add rate limit headers to successful response
             HttpHeaders headers = new HttpHeaders();

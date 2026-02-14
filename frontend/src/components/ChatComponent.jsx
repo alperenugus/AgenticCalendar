@@ -55,7 +55,7 @@ console.log('WebSocket URL:', WS_BASE_URL)
 console.log('API URL:', API_BASE_URL)
 console.log('Page protocol:', window.location.protocol)
 
-function ChatComponent({ onMessageSent }) {
+function ChatComponent({ onMessageSent, user }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -97,6 +97,7 @@ function ChatComponent({ onMessageSent }) {
           headers: {
             'X-Session-Id': sessionIdRef.current,
           },
+          withCredentials: true,
         })
         
         if (response.data && response.data.length > 0) {
@@ -135,7 +136,7 @@ function ChatComponent({ onMessageSent }) {
             {
               id: 1,
               type: 'assistant',
-              content: "Hello! I'm your AI appointment scheduling assistant.\n\nI can help you:\n✅ Create, view, update, or cancel appointments\n✅ Create new user accounts\n✅ Update user information\n\nHow can I assist you today?",
+              content: "Hello! I'm your AI calendar assistant.\n\nI can help you:\n✅ Schedule meetings and events\n✅ Check your calendar\n✅ Find free time slots\n✅ Reschedule or cancel events\n✅ Answer questions about your schedule\n\nTry saying: 'Schedule a meeting tomorrow at 2pm' or 'What's on my calendar next week?'",
               thinking: false,
               toolCalls: null,
             },
@@ -148,7 +149,7 @@ function ChatComponent({ onMessageSent }) {
           {
             id: 1,
             type: 'assistant',
-            content: "Hello! I'm your AI appointment scheduling assistant.\n\nI can help you:\n✅ Create, view, update, or cancel appointments\n✅ Create new user accounts\n✅ Update user information\n\nHow can I assist you today?",
+            content: "Hello! I'm your AI calendar assistant.\n\nI can help you:\n✅ Schedule meetings and events\n✅ Check your calendar\n✅ Find free time slots\n✅ Reschedule or cancel events\n✅ Answer questions about your schedule\n\nTry saying: 'Schedule a meeting tomorrow at 2pm' or 'What's on my calendar next week?'",
             thinking: false,
             toolCalls: null,
           },
@@ -350,12 +351,21 @@ function ChatComponent({ onMessageSent }) {
 
     try {
       // Send request via HTTP - WebSocket will receive real-time updates
+      const headers = {
+        'X-Session-Id': sessionIdRef.current, // Pass session ID for WebSocket routing
+      }
+      
+      // Add Google user info if authenticated
+      if (user?.id) {
+        headers['X-Google-User-Id'] = user.id
+        headers['X-Google-User-Email'] = user.email || ''
+      }
+      
       const response = await axios.post(`${API_BASE_URL}/agent/chat`, {
         message: userMessage,
       }, {
-        headers: {
-          'X-Session-Id': sessionIdRef.current, // Pass session ID for WebSocket routing
-        },
+        headers,
+        withCredentials: true,
       })
 
       // The WebSocket will handle real-time updates
@@ -459,10 +469,12 @@ function ChatComponent({ onMessageSent }) {
       <div className="px-4 py-2 bg-slate-800 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
           <span className="text-xs text-slate-400">Real-time thinking enabled</span>
-          <div className="flex items-center gap-2 px-2 py-1 bg-blue-900/30 border border-blue-700/50 rounded">
-            <User className="w-3 h-3 text-blue-400" />
-            <span className="text-xs text-blue-300 font-medium">Demo User: Alperen Ugus</span>
-          </div>
+          {user && (
+            <div className="flex items-center gap-2 px-2 py-1 bg-blue-900/30 border border-blue-700/50 rounded">
+              <User className="w-3 h-3 text-blue-400" />
+              <span className="text-xs text-blue-300 font-medium">{user.name || user.email}</span>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>

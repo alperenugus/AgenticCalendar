@@ -1,15 +1,60 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ChatComponent from './components/ChatComponent'
-import AppointmentTable from './components/AppointmentTable'
-import UserTable from './components/UserTable'
-import { Calendar, MessageSquare, Users } from 'lucide-react'
+import EventTable from './components/EventTable'
+import { Calendar, MessageSquare, LogIn, LogOut, User } from 'lucide-react'
+import axios from 'axios'
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
 
 function App() {
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [user, setUser] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    checkAuth()
+  }, [])
+
+  const checkAuth = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/auth/user`, { withCredentials: true })
+      if (response.data.authenticated) {
+        setUser(response.data)
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleLogin = () => {
+    window.location.href = `${API_BASE_URL.replace('/api', '')}/oauth2/authorization/google`
+  }
+
+  const handleLogout = async () => {
+    try {
+      await axios.post(`${API_BASE_URL.replace('/api', '')}/logout`, {}, { withCredentials: true })
+      setUser(null)
+      window.location.reload()
+    } catch (error) {
+      console.error('Logout failed:', error)
+      setUser(null)
+      window.location.reload()
+    }
+  }
 
   const handleMessageSent = () => {
-    // Trigger refresh of both tables after message is sent
+    // Trigger refresh of event table after message is sent
     setRefreshTrigger(prev => prev + 1)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center">
+        <div className="text-slate-400">Loading...</div>
+      </div>
+    )
   }
 
   return (
@@ -17,11 +62,40 @@ function App() {
       {/* Header */}
       <header className="border-b border-slate-700 bg-slate-800/50 backdrop-blur-sm">
         <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center gap-3">
-            <Calendar className="w-8 h-8 text-blue-400" />
-            <div>
-              <h1 className="text-2xl font-bold text-white">Agentic Appointment Scheduler</h1>
-              <p className="text-sm text-slate-400">AI-Powered Appointment Management System</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Calendar className="w-8 h-8 text-blue-400" />
+              <div>
+                <h1 className="text-2xl font-bold text-white">Agentic Calendar</h1>
+                <p className="text-sm text-slate-400">AI-Powered Calendar Management</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              {user ? (
+                <>
+                  <div className="flex items-center gap-2 px-3 py-1 bg-blue-900/30 border border-blue-700/50 rounded">
+                    {user.picture && (
+                      <img src={user.picture} alt={user.name} className="w-6 h-6 rounded-full" />
+                    )}
+                    <span className="text-sm text-blue-300 font-medium">{user.name || user.email}</span>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Logout</span>
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={handleLogin}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>Sign in with Google</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -29,34 +103,25 @@ function App() {
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-6 max-w-7xl">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 max-h-[calc(100vh-140px)]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-h-[calc(100vh-140px)]">
           {/* Left Panel - Chat Interface */}
           <div className="flex flex-col bg-slate-800/50 rounded-lg border border-slate-700 shadow-xl min-h-0 max-h-[calc(100vh-140px)] overflow-hidden">
             <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-700 flex-shrink-0">
               <MessageSquare className="w-4 h-4 text-blue-400" />
-              <h2 className="text-base font-semibold text-white">Chat with Agent</h2>
+              <h2 className="text-base font-semibold text-white">Chat with Calendar Agent</h2>
             </div>
             <div className="flex-1 min-h-0">
-              <ChatComponent onMessageSent={handleMessageSent} />
+              <ChatComponent onMessageSent={handleMessageSent} user={user} />
             </div>
           </div>
 
-          {/* Middle Panel - Appointment Monitor */}
-          <div className="flex flex-col bg-slate-800/50 rounded-lg border border-slate-700 shadow-xl min-h-0 max-h-[calc(100vh-140px)]">
+          {/* Right Panel - Calendar Events */}
+          <div className="flex flex-col bg-slate-800/50 rounded-lg border border-slate-700 shadow-xl min-h-0 max-h-[calc(100vh-140px)] overflow-hidden">
             <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-700 flex-shrink-0">
               <Calendar className="w-4 h-4 text-green-400" />
-              <h2 className="text-base font-semibold text-white">Live Appointment Monitor</h2>
+              <h2 className="text-base font-semibold text-white">Your Calendar Events</h2>
             </div>
-            <AppointmentTable refreshTrigger={refreshTrigger} />
-          </div>
-
-          {/* Right Panel - Registered Users */}
-          <div className="flex flex-col bg-slate-800/50 rounded-lg border border-slate-700 shadow-xl min-h-0 max-h-[calc(100vh-140px)]">
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-700 flex-shrink-0">
-              <Users className="w-4 h-4 text-purple-400" />
-              <h2 className="text-base font-semibold text-white">Registered Users</h2>
-            </div>
-            <UserTable refreshTrigger={refreshTrigger} />
+            <EventTable refreshTrigger={refreshTrigger} user={user} />
           </div>
         </div>
       </main>
