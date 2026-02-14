@@ -104,7 +104,7 @@ function App() {
               <Calendar className="w-8 h-8 text-blue-400" />
               <div>
                 <h1 className="text-2xl font-bold text-white">Agentic Calendar</h1>
-                <p className="text-sm text-slate-400">AI-Powered Calendar Management</p>
+                <p className="text-sm text-slate-400">AI-Powered Calendar Assistant</p>
               </div>
             </div>
             <div className="flex items-center gap-4">

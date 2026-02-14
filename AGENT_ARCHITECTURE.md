@@ -44,9 +44,10 @@ The agent uses the **ReAct (Reasoning and Acting) pattern**, an industry-standar
 - Handles tool execution
 - Parses ReAct pattern output
 
-### AppointmentToolService
+### CalendarToolService
 - LangChain4j tool definitions with `@Tool` annotations
-- Tools: getUser, getAppointmentsByUser, createAppointment, updateAppointment, deleteAppointment, createUser, updateUser, deleteUser
+- Tools: createEvent, getEvents, getEventsByDateRange, checkConflicts, updateEvent, deleteEvent, getUpcomingEvents
+- Supports recurring events with RRULE format
 - Returns JSON strings for LLM parsing
 
 ### ReActParser

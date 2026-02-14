@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Calendar, Clock, MapPin, RefreshCw, Grid3x3, List } from 'lucide-react'
 import axios from 'axios'
 import toast from 'react-hot-toast'
+import { expandAllEvents } from '../utils/recurrenceExpander'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
 
@@ -69,9 +70,43 @@ function CalendarView({ refreshTrigger, user }) {
     setSelectedDate(new Date())
   }
 
+  // Get expanded events for the visible date range
+  const getExpandedEvents = useMemo(() => {
+    if (!events || events.length === 0) return []
+    
+    // Calculate visible date range based on current view
+    let rangeStart, rangeEnd
+    const now = new Date()
+    
+    if (viewMode === 'month') {
+      const year = currentDate.getFullYear()
+      const month = currentDate.getMonth()
+      rangeStart = new Date(year, month, 1)
+      rangeEnd = new Date(year, month + 1, 0)
+      // Include a bit of previous/next month for better UX
+      rangeStart.setDate(rangeStart.getDate() - 7)
+      rangeEnd.setDate(rangeEnd.getDate() + 7)
+    } else if (viewMode === 'week') {
+      const startOfWeek = new Date(currentDate)
+      const day = startOfWeek.getDay()
+      startOfWeek.setDate(startOfWeek.getDate() - day)
+      rangeStart = new Date(startOfWeek)
+      rangeEnd = new Date(startOfWeek)
+      rangeEnd.setDate(rangeEnd.getDate() + 7)
+    } else {
+      // Day view
+      rangeStart = new Date(currentDate)
+      rangeStart.setHours(0, 0, 0, 0)
+      rangeEnd = new Date(currentDate)
+      rangeEnd.setHours(23, 59, 59, 999)
+    }
+    
+    return expandAllEvents(events, rangeStart, rangeEnd)
+  }, [events, currentDate, viewMode])
+
   // Get events for a specific date
   const getEventsForDate = (date) => {
-    return events.filter(event => {
+    return getExpandedEvents.filter(event => {
       if (!event.startTime) return false
       const eventDate = new Date(event.startTime)
       return eventDate.toDateString() === date.toDateString()

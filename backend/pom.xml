@@ -11,8 +11,8 @@
 	<groupId>com.agent</groupId>
 	<artifactId>appointmentscheduler</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>appointmentscheduler</name>
-	<description>Appointment Scheduler AI Agent</description>
+	<name>agenticcalendar</name>
+	<description>Agentic Calendar AI Assistant</description>
 	<properties>
 		<java.version>21</java.version>
 		<langchain4j.version>0.34.0</langchain4j.version>
