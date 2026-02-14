@@ -240,7 +240,8 @@ public class AgentService {
                     String endTime = inputNode.get("endTime").asText();
                     String description = inputNode.has("description") ? inputNode.get("description").asText() : null;
                     String location = inputNode.has("location") ? inputNode.get("location").asText() : null;
-                    return toolService.createEvent(title, startTime, endTime, description, location, sessionId, googleUserId, googleUserEmail);
+                    String recurrenceRule = inputNode.has("recurrenceRule") ? inputNode.get("recurrenceRule").asText() : null;
+                    return toolService.createEvent(title, startTime, endTime, description, location, recurrenceRule, sessionId, googleUserId, googleUserEmail);
                     
                 case "getEvents":
                     return toolService.getEvents(sessionId, googleUserId);
@@ -353,9 +354,15 @@ public class AgentService {
                 4. When creating events, always calculate endTime from startTime and duration if duration is provided
                 5. Be proactive: warn users about double-bookings and suggest alternatives
                 6. If a tool returns multiple results, present them clearly to the user
+                7. **RECURRING EVENTS**: If the user mentions recurrence (weekly, daily, monthly, "every Monday", "every weekday", etc.), you MUST:
+                   - Extract the recurrence pattern from the user's message
+                   - Include it in the recurrenceRule parameter when calling createEvent
+                   - Use natural language patterns like "weekly", "daily", "every Monday", "monthly", "every weekday", etc.
+                   - The system will automatically convert these to proper RRULE format
+                   - In your Final Answer, mention that the event is recurring (e.g., "I've created a recurring weekly meeting")
 
                 ### AVAILABLE TOOLS:
-                - createEvent(title, startTime, endTime, description?, location?): Create a new calendar event
+                - createEvent(title, startTime, endTime, description?, location?, recurrenceRule?): Create a new calendar event. For recurring events, include recurrenceRule (e.g., "weekly", "daily", "every Monday", "monthly", or RFC 5545 RRULE format)
                 - getEvents(sessionId, googleUserId?): Get all events for the user
                 - getEventsByDateRange(sessionId, startDate, endDate, googleUserId?): Get events in a date range
                 - getEvent(eventId): Get details of a specific event
@@ -416,6 +423,18 @@ public class AgentService {
                 Action Input: {"eventId": 1, "startTime": "2024-12-27T14:00:00", "endTime": "2024-12-27T15:00:00"}
                 Observation: {"eventId": 1, "title": "Meeting", "startTime": "2024-12-27T14:00:00", "endTime": "2024-12-27T15:00:00", "message": "Event updated successfully"}
                 Final Answer: I've rescheduled your meeting to Friday, December 27, 2024 at 2:00 PM.
+                
+                Example 4 (Recurring Event):
+                User: "Create a weekly team meeting every Monday at 2pm"
+                Thought: The user wants to create a recurring weekly event. I need to parse "every Monday at 2pm" into ISO format for the first occurrence, calculate endTime (assuming 1 hour), check for conflicts, and include recurrenceRule "every Monday" or "weekly".
+                Action: checkConflicts
+                Action Input: {"sessionId": "session-123", "startTime": "2024-12-30T14:00:00", "endTime": "2024-12-30T15:00:00"}
+                Observation: {"hasConflicts": false, "conflicts": [], "message": "No conflicts found"}
+                Thought: No conflicts found. Now I can create the recurring event with recurrenceRule "every Monday".
+                Action: createEvent
+                Action Input: {"title": "Team Meeting", "startTime": "2024-12-30T14:00:00", "endTime": "2024-12-30T15:00:00", "description": "Weekly team meeting", "recurrenceRule": "every Monday"}
+                Observation: {"eventId": 2, "title": "Team Meeting", "startTime": "2024-12-30T14:00:00", "endTime": "2024-12-30T15:00:00", "recurrenceRule": "FREQ=WEEKLY;BYDAY=MO", "message": "Event created successfully (recurring: FREQ=WEEKLY;BYDAY=MO)"}
+                Final Answer: I've created a recurring weekly team meeting every Monday at 2:00 PM, starting December 30, 2024. The event has been added to your calendar and will repeat weekly.
 
                 ### IMPORTANT FORMATTING:
                 - Always use the exact format: "Thought:", "Action:", "Action Input:", "Observation:", "Final Answer:"

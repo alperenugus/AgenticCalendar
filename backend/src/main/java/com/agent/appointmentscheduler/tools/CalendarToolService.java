@@ -4,6 +4,7 @@ import com.agent.appointmentscheduler.model.Event;
 import com.agent.appointmentscheduler.model.EventStatus;
 import com.agent.appointmentscheduler.service.EventService;
 import com.agent.appointmentscheduler.service.InputValidationService;
+import com.agent.appointmentscheduler.util.RecurrenceParser;
 import dev.langchain4j.agent.tool.Tool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,15 +31,18 @@ public class CalendarToolService {
     }
 
     @Tool("Create a new calendar event. Use this when the user wants to schedule, book, or create a new event. " +
-          "Examples: 'meeting tomorrow at 2pm', 'lunch on Friday', 'call next Monday at 10am'. " +
+          "Examples: 'meeting tomorrow at 2pm', 'lunch on Friday', 'call next Monday at 10am', 'weekly team meeting every Monday at 2pm'. " +
           "Requires: title (event name), startTime (ISO format: yyyy-MM-ddTHH:mm:ss), " +
-          "endTime (ISO format), description (optional), location (optional). " +
+          "endTime (ISO format), description (optional), location (optional), recurrenceRule (optional - for recurring events). " +
           "The startTime and endTime should be converted from natural language " +
           "(e.g., 'December 25, 2024 at 2 PM' → '2024-12-25T14:00:00'). " +
-          "If duration is provided instead of endTime, calculate endTime by adding duration to startTime.")
-    public String createEvent(String title, String startTime, String endTime, String description, String location, String sessionId, String googleUserId, String googleUserEmail) {
-        log.info("🔵 createEvent CALLED with title={}, startTime={}, endTime={}, sessionId={}", 
-                title, startTime, endTime, sessionId);
+          "If duration is provided instead of endTime, calculate endTime by adding duration to startTime. " +
+          "For recurring events, recurrenceRule can be natural language (e.g., 'weekly', 'daily', 'every Monday', 'monthly') " +
+          "or RFC 5545 RRULE format (e.g., 'FREQ=WEEKLY;BYDAY=MO'). If the user mentions recurrence (weekly, daily, monthly, etc.), " +
+          "you MUST extract it and pass it as recurrenceRule.")
+    public String createEvent(String title, String startTime, String endTime, String description, String location, String recurrenceRule, String sessionId, String googleUserId, String googleUserEmail) {
+        log.info("🔵 createEvent CALLED with title={}, startTime={}, endTime={}, recurrenceRule={}, sessionId={}", 
+                title, startTime, endTime, recurrenceRule, sessionId);
         try {
             String validatedTitle = inputValidationService.validateDescription(title);
             String validatedDescription = description != null ? inputValidationService.validateDescription(description) : null;
@@ -51,18 +55,36 @@ public class CalendarToolService {
                 return "{\"error\": \"End time must be after start time\"}";
             }
             
+            // Parse recurrence rule from natural language to RRULE format
+            String parsedRecurrenceRule = null;
+            if (recurrenceRule != null && !recurrenceRule.trim().isEmpty()) {
+                parsedRecurrenceRule = RecurrenceParser.parseRecurrence(recurrenceRule, start);
+                if (parsedRecurrenceRule == null) {
+                    log.warn("Could not parse recurrence pattern: {}. Creating non-recurring event.", recurrenceRule);
+                } else {
+                    log.info("Parsed recurrence rule: {} -> {}", recurrenceRule, parsedRecurrenceRule);
+                }
+            }
+            
             Event event = eventService.createEvent(validatedTitle, start, end, validatedDescription, 
-                    sessionId, googleUserId, googleUserEmail);
+                    parsedRecurrenceRule, sessionId, googleUserId, googleUserEmail);
             if (validatedLocation != null) {
                 event.setLocation(validatedLocation);
                 event = eventService.updateEvent(event.getId(), null, null, null, null, validatedLocation, null);
             }
             
-            log.info("Event created successfully: id={}", event.getId());
+            log.info("Event created successfully: id={}, recurrenceRule={}", event.getId(), event.getRecurrenceRule());
+            
+            String message = "Event created successfully";
+            if (parsedRecurrenceRule != null) {
+                message += " (recurring: " + parsedRecurrenceRule + ")";
+            }
             
             return String.format(
-                "{\"eventId\": %d, \"title\": \"%s\", \"startTime\": \"%s\", \"endTime\": \"%s\", \"message\": \"Event created successfully\"}",
-                event.getId(), event.getTitle(), event.getStartTime(), event.getEndTime()
+                "{\"eventId\": %d, \"title\": \"%s\", \"startTime\": \"%s\", \"endTime\": \"%s\", \"recurrenceRule\": \"%s\", \"message\": \"%s\"}",
+                event.getId(), event.getTitle(), event.getStartTime(), event.getEndTime(),
+                event.getRecurrenceRule() != null ? event.getRecurrenceRule() : "",
+                message
             );
         } catch (Exception e) {
             log.error("Error creating event: {}", e.getMessage(), e);

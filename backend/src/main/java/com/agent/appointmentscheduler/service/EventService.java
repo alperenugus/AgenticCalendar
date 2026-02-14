@@ -3,8 +3,6 @@ package com.agent.appointmentscheduler.service;
 import com.agent.appointmentscheduler.model.Event;
 import com.agent.appointmentscheduler.model.EventStatus;
 import com.agent.appointmentscheduler.repository.EventRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,10 +22,18 @@ public class EventService {
 
     public Event createEvent(String title, LocalDateTime startTime, LocalDateTime endTime, 
                             String description, String sessionId, String googleUserId, String googleUserEmail) {
+        return createEvent(title, startTime, endTime, description, null, sessionId, googleUserId, googleUserEmail);
+    }
+
+    public Event createEvent(String title, LocalDateTime startTime, LocalDateTime endTime, 
+                            String description, String recurrenceRule, String sessionId, String googleUserId, String googleUserEmail) {
         Event event = new Event(title, startTime, endTime, description, sessionId);
         if (googleUserId != null) {
             event.setGoogleUserId(googleUserId);
             event.setGoogleUserEmail(googleUserEmail);
+        }
+        if (recurrenceRule != null && !recurrenceRule.trim().isEmpty()) {
+            event.setRecurrenceRule(recurrenceRule);
         }
         return eventRepository.save(event);
     }
