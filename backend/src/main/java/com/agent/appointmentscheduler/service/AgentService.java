@@ -299,7 +299,7 @@ public class AgentService {
                 
                 ### CRITICAL: CURRENT DATE AND TIME
                 **IMPORTANT**: You MUST use the current date and time provided below. Do NOT use dates from your training data.
-                - Current Date and Time: %s at %s
+                - Current Date and Time: %s
                 - Current Date (ISO format): %s
                 - When the user says "today", use: %s
                 - When the user says "tomorrow", calculate: %s
