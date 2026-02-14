@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Calendar, Clock, MapPin, RefreshCw, Grid3x3, List } from 'lucide-react'
 import axios from 'axios'
 import toast from 'react-hot-toast'
@@ -83,9 +83,7 @@ function CalendarView({ refreshTrigger, user }) {
       const month = currentDate.getMonth()
       rangeStart = new Date(year, month, 1)
       rangeEnd = new Date(year, month + 1, 0)
-      // Include a bit of previous/next month for better UX
-      rangeStart.setDate(rangeStart.getDate() - 7)
-      rangeEnd.setDate(rangeEnd.getDate() + 7)
+      // Only show current month - no extra days
     } else if (viewMode === 'week') {
       const startOfWeek = new Date(currentDate)
       const day = startOfWeek.getDay()
@@ -216,6 +214,29 @@ function CalendarView({ refreshTrigger, user }) {
 
   // Week view
   const WeekView = () => {
+    const weekViewRef = useRef(null)
+    
+    // Scroll to 8 AM on mount and when currentDate or viewMode changes
+    useEffect(() => {
+      if (viewMode === 'week') {
+        // Use requestAnimationFrame to ensure DOM is fully rendered
+        const scrollTo8AM = () => {
+          if (weekViewRef.current) {
+            // 8 AM = 8 hours * 64px per hour = 512px
+            weekViewRef.current.scrollTop = 512
+          } else {
+            // If ref not ready, try again on next frame
+            requestAnimationFrame(scrollTo8AM)
+          }
+        }
+        
+        // Double RAF to ensure layout is complete
+        requestAnimationFrame(() => {
+          requestAnimationFrame(scrollTo8AM)
+        })
+      }
+    }, [currentDate, viewMode])
+    
     const startOfWeek = new Date(currentDate)
     const day = startOfWeek.getDay()
     startOfWeek.setDate(startOfWeek.getDate() - day)
@@ -230,7 +251,7 @@ function CalendarView({ refreshTrigger, user }) {
     const hours = Array.from({ length: 24 }, (_, i) => i)
     
     return (
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto" ref={weekViewRef}>
         <div className="grid grid-cols-8 border-b border-slate-700 sticky top-0 bg-slate-800/95 z-10">
           <div className="p-2 border-r border-slate-700"></div>
           {weekDays.map((date, index) => {
@@ -303,11 +324,34 @@ function CalendarView({ refreshTrigger, user }) {
 
   // Day view
   const DayView = () => {
+    const dayViewRef = useRef(null)
+    
+    // Scroll to 8 AM on mount and when currentDate or viewMode changes
+    useEffect(() => {
+      if (viewMode === 'day') {
+        // Use requestAnimationFrame to ensure DOM is fully rendered
+        const scrollTo8AM = () => {
+          if (dayViewRef.current) {
+            // 8 AM = 8 hours * 64px per hour = 512px
+            dayViewRef.current.scrollTop = 512
+          } else {
+            // If ref not ready, try again on next frame
+            requestAnimationFrame(scrollTo8AM)
+          }
+        }
+        
+        // Double RAF to ensure layout is complete
+        requestAnimationFrame(() => {
+          requestAnimationFrame(scrollTo8AM)
+        })
+      }
+    }, [currentDate, viewMode])
+    
     const hours = Array.from({ length: 24 }, (_, i) => i)
     const dayEvents = getEventsForDate(currentDate)
     
     return (
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto" ref={dayViewRef}>
         <div className="grid grid-cols-2 border-b border-slate-700 sticky top-0 bg-slate-800/95 z-10">
           <div className="p-2 border-r border-slate-700"></div>
           <div className="p-2 text-center">

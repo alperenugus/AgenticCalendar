@@ -28,7 +28,7 @@ FROM eclipse-temurin:21-jre
 WORKDIR /app
 
 # Copy the built JAR from build stage
-COPY --from=build /app/backend/target/appointmentscheduler-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=build /app/backend/target/agenticcalendar-0.0.1-SNAPSHOT.jar app.jar
 
 # Expose port (Railway will set PORT env var)
 EXPOSE 8080

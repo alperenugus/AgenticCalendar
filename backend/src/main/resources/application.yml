@@ -102,7 +102,7 @@ rate-limit:
 # Logging
 logging:
   level:
-    com.agent.appointmentscheduler: DEBUG
+    com.agent.agenticcalendar: DEBUG
     dev.langchain4j: DEBUG  # LangChain4j logging
     dev.langchain4j.model.ollama: DEBUG  # Detailed Ollama logging
     org.hibernate.SQL: WARN  # Disable SQL query logging
