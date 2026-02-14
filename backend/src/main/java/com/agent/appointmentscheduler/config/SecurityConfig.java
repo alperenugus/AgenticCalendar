@@ -26,6 +26,9 @@ public class SecurityConfig {
     @Value("${GOOGLE_REDIRECT_URI:https://agenticappointmentschedulerbackend-production.up.railway.app/login/oauth2/code/google}")
     private String redirectUri;
 
+    @Value("${FRONTEND_URL:http://localhost:5173}")
+    private String frontendUrl;
+
     @Autowired
     private ClientRegistrationRepository clientRegistrationRepository;
 
@@ -42,7 +45,7 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2
-                .defaultSuccessUrl("/", true)
+                .defaultSuccessUrl(frontendUrl, true)
                 .authorizationEndpoint(authorization -> authorization
                     .baseUri("/oauth2/authorization")
                     .authorizationRequestResolver(authorizationRequestResolver())
@@ -53,7 +56,7 @@ public class SecurityConfig {
             )
             .logout(logout -> logout
                 .logoutUrl("/logout")
-                .logoutSuccessUrl("/")
+                .logoutSuccessUrl(frontendUrl)
                 .invalidateHttpSession(true)
                 .deleteCookies("JSESSIONID")
             );
