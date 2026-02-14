@@ -454,9 +454,9 @@ function ChatComponent({ onMessageSent }) {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Connection Status Indicator */}
-      <div className="px-4 py-2 bg-slate-800 border-b border-slate-700 flex items-center justify-between">
+      <div className="px-4 py-2 bg-slate-800 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
           <span className="text-xs text-slate-400">Real-time thinking enabled</span>
           <div className="flex items-center gap-2 px-2 py-1 bg-blue-900/30 border border-blue-700/50 rounded">
@@ -471,7 +471,7 @@ function ChatComponent({ onMessageSent }) {
       </div>
 
       {/* Messages Container */}
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
         {isLoadingHistory ? (
           <div className="flex items-center justify-center h-full">
             <div className="flex items-center gap-2 text-slate-400">
@@ -558,7 +558,7 @@ function ChatComponent({ onMessageSent }) {
       </div>
 
       {/* Input Form */}
-      <div className="border-t border-slate-700 p-4">
+      <div className="border-t border-slate-700 p-4 flex-shrink-0 bg-slate-800/50">
         <form onSubmit={handleSend} className="flex gap-2">
           <input
             ref={inputRef}

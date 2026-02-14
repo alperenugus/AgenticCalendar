@@ -31,12 +31,14 @@ function App() {
       <main className="container mx-auto px-6 py-6 max-w-7xl">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 max-h-[calc(100vh-140px)]">
           {/* Left Panel - Chat Interface */}
-          <div className="flex flex-col bg-slate-800/50 rounded-lg border border-slate-700 shadow-xl min-h-0 max-h-[calc(100vh-140px)]">
+          <div className="flex flex-col bg-slate-800/50 rounded-lg border border-slate-700 shadow-xl min-h-0 max-h-[calc(100vh-140px)] overflow-hidden">
             <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-700 flex-shrink-0">
               <MessageSquare className="w-4 h-4 text-blue-400" />
               <h2 className="text-base font-semibold text-white">Chat with Agent</h2>
             </div>
-            <ChatComponent onMessageSent={handleMessageSent} />
+            <div className="flex-1 min-h-0">
+              <ChatComponent onMessageSent={handleMessageSent} />
+            </div>
           </div>
 
           {/* Middle Panel - Appointment Monitor */}
