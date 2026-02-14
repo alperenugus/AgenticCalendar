@@ -141,14 +141,8 @@ function CalendarView({ refreshTrigger, user }) {
       })
     }
     
-    // Next month's leading days
-    const remainingDays = 42 - days.length
-    for (let day = 1; day <= remainingDays; day++) {
-      days.push({
-        date: new Date(year, month + 1, day),
-        isCurrentMonth: false,
-      })
-    }
+    // Only show current month days - don't add next month's days
+    const currentMonthDays = days.filter(dayObj => dayObj.isCurrentMonth)
     
     const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
     
@@ -162,7 +156,7 @@ function CalendarView({ refreshTrigger, user }) {
           ))}
         </div>
         <div className="grid grid-cols-7 auto-rows-fr">
-          {days.map((dayObj, index) => {
+          {currentMonthDays.map((dayObj, index) => {
             const dayEvents = getEventsForDate(dayObj.date)
             const isToday = dayObj.date.toDateString() === new Date().toDateString()
             const isSelected = dayObj.date.toDateString() === selectedDate.toDateString()
@@ -172,8 +166,7 @@ function CalendarView({ refreshTrigger, user }) {
                 key={index}
                 onClick={() => setSelectedDate(dayObj.date)}
                 className={`min-h-[100px] border-r border-b border-slate-700 p-1 cursor-pointer hover:bg-slate-800/50 transition-colors ${
-                  !dayObj.isCurrentMonth ? 'bg-slate-900/30 text-slate-600' : ''
-                } ${isToday ? 'bg-blue-900/20' : ''} ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
+                  isToday ? 'bg-blue-900/20' : ''} ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
               >
                 <div className={`text-xs font-medium mb-1 px-1 ${
                   isToday ? 'bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center' : 'text-slate-300'
@@ -297,7 +290,7 @@ function CalendarView({ refreshTrigger, user }) {
                         return (
                           <div
                             key={event.id}
-                            className="absolute left-0 right-0 rounded px-1 text-xs text-white truncate"
+                            className="absolute left-0 right-0 rounded px-1 text-xs text-white"
                             style={{
                               backgroundColor: event.color || '#3b82f6',
                               top: `${top}px`,
@@ -306,8 +299,7 @@ function CalendarView({ refreshTrigger, user }) {
                             }}
                             title={`${event.title} - ${startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
                           >
-                            <div className="font-medium">{startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</div>
-                            <div className="truncate">{event.title}</div>
+                            <div className="font-medium break-words">{event.title}</div>
                           </div>
                         )
                       })}
@@ -397,11 +389,7 @@ function CalendarView({ refreshTrigger, user }) {
                           zIndex: 10,
                         }}
                       >
-                        <div className="font-semibold">{event.title}</div>
-                        <div className="text-xs opacity-90">
-                          {startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} - 
-                          {endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                        </div>
+                        <div className="font-semibold break-words">{event.title}</div>
                         {event.location && (
                           <div className="text-xs opacity-75 mt-1 flex items-center gap-1">
                             <MapPin className="w-3 h-3" />
