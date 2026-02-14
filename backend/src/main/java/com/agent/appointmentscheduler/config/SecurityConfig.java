@@ -23,7 +23,7 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Value("${GOOGLE_REDIRECT_URI:https://agenticappointmentschedulerbackend-production.up.railway.app/login/oauth2/code/google}")
+    @Value("${GOOGLE_REDIRECT_URI:https://agenticcalendar-backend-production.up.railway.app/login/oauth2/code/google}")
     private String redirectUri;
 
     @Value("${FRONTEND_URL:http://localhost:5173}")

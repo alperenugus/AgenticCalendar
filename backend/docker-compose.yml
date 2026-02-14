@@ -1,9 +1,9 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: appointmentscheduler-postgres
+    container_name: agenticcalendar-postgres
     environment:
-      POSTGRES_DB: appointmentscheduler
+      POSTGRES_DB: agenticcalendar
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Agentic Appointment Scheduler - Setup Script
+# Agentic Calendar - Setup Script
 # This script sets up both backend and frontend for the project
 
 set -e  # Exit on error

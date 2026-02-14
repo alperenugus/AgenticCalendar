@@ -124,8 +124,8 @@ User: "Schedule a weekly team meeting every Monday at 2pm"
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/alperenugus/AgenticAppointmentScheduler.git
-cd AgenticAppointmentScheduler
+git clone https://github.com/alperenugus/AgenticCalendar.git
+cd AgenticCalendar
 ```
 
 2. **Set up backend:**

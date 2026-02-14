@@ -1,11 +1,11 @@
 spring:
   application:
-    name: appointmentscheduler
+    name: agenticcalendar
   
   datasource:
     # Railway PostgreSQL - uses environment variables automatically set by Railway
     # Railway sets: PGHOST, PGPORT, PGDATABASE, PGUSER, PGPASSWORD
-    url: jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:appointmentscheduler}
+    url: jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:agenticcalendar}
     username: ${PGUSER:postgres}
     password: ${PGPASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
@@ -27,7 +27,7 @@ spring:
           google:
             client-id: ${GOOGLE_CLIENT_ID:}
             client-secret: ${GOOGLE_CLIENT_SECRET:}
-            redirect-uri: ${GOOGLE_REDIRECT_URI:https://agenticappointmentschedulerbackend-production.up.railway.app/login/oauth2/code/google}
+            redirect-uri: ${GOOGLE_REDIRECT_URI:https://agenticcalendar-backend-production.up.railway.app/login/oauth2/code/google}
             scope:
               - openid
               - profile
