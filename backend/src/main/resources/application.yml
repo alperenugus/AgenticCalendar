@@ -67,6 +67,13 @@ spring:
 # Server Configuration
 server:
   port: ${PORT:8080}  # Use PORT env var for Railway, default to 8080
+  # Trust proxy headers (required for Railway/HTTPS)
+  forward-headers-strategy: framework
+  use-forward-headers: true
+  # Ensure redirect URIs use HTTPS when behind proxy
+  tomcat:
+    remote-ip-header: x-forwarded-for
+    protocol-header: x-forwarded-proto
 
 # Rate Limiting Configuration
 rate-limit:
