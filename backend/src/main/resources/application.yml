@@ -75,6 +75,13 @@ server:
   tomcat:
     remote-ip-header: x-forwarded-for
     protocol-header: x-forwarded-proto
+  # Session configuration for OAuth2
+  servlet:
+    session:
+      cookie:
+        same-site: none
+        secure: true
+        http-only: true
 
 # Rate Limiting Configuration
 rate-limit:

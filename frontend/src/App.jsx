@@ -13,19 +13,54 @@ function App() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    // Check auth immediately
     checkAuth()
+    
+    // Check auth multiple times after redirect (OAuth might take a moment)
+    const timeouts = [
+      setTimeout(() => checkAuth(), 500),
+      setTimeout(() => checkAuth(), 1000),
+      setTimeout(() => checkAuth(), 2000),
+    ]
+    
+    // Also check when window gains focus
+    const handleFocus = () => {
+      checkAuth()
+    }
+    window.addEventListener('focus', handleFocus)
+    
+    return () => {
+      timeouts.forEach(clearTimeout)
+      window.removeEventListener('focus', handleFocus)
+    }
   }, [])
 
   const checkAuth = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/auth/user`, { withCredentials: true })
-      if (response.data.authenticated) {
+      const response = await axios.get(`${API_BASE_URL}/auth/user`, { 
+        withCredentials: true,
+        headers: {
+          'Accept': 'application/json',
+        }
+      })
+      
+      if (response.data && response.data.authenticated) {
         setUser(response.data)
+        setIsLoading(false)
+        return true
+      } else {
+        setUser(null)
+        setIsLoading(false)
+        return false
       }
     } catch (error) {
       console.error('Auth check failed:', error)
-    } finally {
+      // Don't set user to null on first check if we're still loading
+      if (!isLoading) {
+        setUser(null)
+      }
       setIsLoading(false)
+      return false
     }
   }
 

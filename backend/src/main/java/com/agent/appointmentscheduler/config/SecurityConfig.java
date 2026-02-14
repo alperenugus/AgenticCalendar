@@ -44,6 +44,9 @@ public class SecurityConfig {
                 .requestMatchers("/login/**").permitAll()
                 .anyRequest().authenticated()
             )
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.IF_REQUIRED)
+            )
             .oauth2Login(oauth2 -> oauth2
                 .defaultSuccessUrl(frontendUrl, true)
                 .authorizationEndpoint(authorization -> authorization
