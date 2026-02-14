@@ -290,7 +290,7 @@ function CalendarView({ refreshTrigger, user }) {
                         return (
                           <div
                             key={event.id}
-                            className="absolute left-0 right-0 rounded px-1 text-xs text-white"
+                            className="absolute left-0 right-0 rounded px-1 text-xs text-white flex items-center justify-center"
                             style={{
                               backgroundColor: event.color || '#3b82f6',
                               top: `${top}px`,
@@ -299,7 +299,7 @@ function CalendarView({ refreshTrigger, user }) {
                             }}
                             title={`${event.title} - ${startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
                           >
-                            <div className="font-medium break-words">{event.title}</div>
+                            <div className="font-medium break-words text-center">{event.title}</div>
                           </div>
                         )
                       })}
@@ -381,7 +381,7 @@ function CalendarView({ refreshTrigger, user }) {
                     return (
                       <div
                         key={event.id}
-                        className="absolute left-0 right-0 rounded px-2 py-1 text-xs text-white"
+                        className="absolute left-0 right-0 rounded px-2 py-1 text-xs text-white flex flex-col items-center justify-center"
                         style={{
                           backgroundColor: event.color || '#3b82f6',
                           top: `${top}px`,
@@ -389,7 +389,7 @@ function CalendarView({ refreshTrigger, user }) {
                           zIndex: 10,
                         }}
                       >
-                        <div className="font-semibold break-words">{event.title}</div>
+                        <div className="font-semibold break-words text-center">{event.title}</div>
                         {event.location && (
                           <div className="text-xs opacity-75 mt-1 flex items-center gap-1">
                             <MapPin className="w-3 h-3" />
