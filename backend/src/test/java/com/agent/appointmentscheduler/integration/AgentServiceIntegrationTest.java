@@ -75,7 +75,7 @@ class AgentServiceIntegrationTest {
         String userMessage = "Book an appointment for Alperen Ugus born on 1990-01-01 for tomorrow at 2 PM for a dental checkup";
 
         // When: Process the message through the agent
-        AgentResponse response = agentService.processUserMessage(userMessage, TEST_SESSION_ID);
+        AgentResponse response = agentService.processUserMessage(userMessage, TEST_SESSION_ID, null, null);
 
         // Then: Verify the response and that an appointment was created
         assertThat(response).isNotNull();
@@ -96,7 +96,7 @@ class AgentServiceIntegrationTest {
         String userMessage = "Book an appointment for John Doe";
 
         // When: Process the message
-        AgentResponse response = agentService.processUserMessage(userMessage, TEST_SESSION_ID);
+        AgentResponse response = agentService.processUserMessage(userMessage, TEST_SESSION_ID, null, null);
 
         // Then: Should ask for more information
         assertThat(response).isNotNull();
@@ -121,7 +121,7 @@ class AgentServiceIntegrationTest {
         );
 
         // When: Process the update request
-        AgentResponse response = agentService.processUserMessage(userMessage, TEST_SESSION_ID);
+        AgentResponse response = agentService.processUserMessage(userMessage, TEST_SESSION_ID, null, null);
 
         // Then: Should process the update
         assertThat(response).isNotNull();
@@ -143,7 +143,7 @@ class AgentServiceIntegrationTest {
         String userMessage = String.format("Cancel appointment %d", appointmentId);
 
         // When: Process the delete request
-        AgentResponse response = agentService.processUserMessage(userMessage, TEST_SESSION_ID);
+        AgentResponse response = agentService.processUserMessage(userMessage, TEST_SESSION_ID, null, null);
 
         // Then: Should process the deletion
         assertThat(response).isNotNull();
