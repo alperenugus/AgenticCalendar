@@ -3,11 +3,13 @@ package com.agent.agenticcalendar.controller;
 import com.agent.agenticcalendar.exception.RateLimitExceededException;
 import com.agent.agenticcalendar.model.AgentResponse;
 import com.agent.agenticcalendar.model.ConversationMessage;
+import com.agent.agenticcalendar.security.CurrentUser;
 import com.agent.agenticcalendar.service.AgentService;
 import com.agent.agenticcalendar.service.RateLimitService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,22 +30,25 @@ public class AgentController {
     public ResponseEntity<AgentResponse> chat(
             @RequestBody AgentRequest request,
             @RequestHeader(value = "X-Session-Id", required = false) String sessionId,
-            @RequestHeader(value = "X-Google-User-Id", required = false) String googleUserId,
-            @RequestHeader(value = "X-Google-User-Email", required = false) String googleUserEmail) {
+            Authentication authentication) {
         try {
-            // Use provided session ID or default
-            String effectiveSessionId = sessionId != null && !sessionId.trim().isEmpty() 
-                    ? sessionId 
+            // Use provided session ID or default (used only for WebSocket routing + memory)
+            String effectiveSessionId = sessionId != null && !sessionId.trim().isEmpty()
+                    ? sessionId
                     : "default";
-            
+
+            // Identity is derived from the authenticated session — NEVER from client headers.
+            String ownerKey = CurrentUser.ownerKey(authentication);
+            String ownerEmail = CurrentUser.email(authentication);
+
             // Check rate limit before processing
             rateLimitService.checkChatRateLimit(effectiveSessionId);
-            
+
             AgentResponse response = agentService.processUserMessage(
-                    request.message(), 
-                    effectiveSessionId, 
-                    googleUserId, 
-                    googleUserEmail
+                    request.message(),
+                    effectiveSessionId,
+                    ownerKey,
+                    ownerEmail
             );
             
             // Add rate limit headers to successful response

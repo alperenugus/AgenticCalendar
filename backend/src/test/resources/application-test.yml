@@ -3,8 +3,8 @@ spring:
     url: jdbc:h2:mem:testdb
     driver-class-name: org.h2.Driver
     username: sa
-    password: 
-  
+    password:
+
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -12,15 +12,28 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
-  
-  langchain4j:
-    ollama:
-      base-url: http://localhost:11434
-      model: llama3.1
-      temperature: 0.7
+
+  # Dummy OAuth2 client so the Spring Security context can load in tests
+  # (no real Google credentials are needed for unit tests).
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: test-client-id
+            client-secret: test-client-secret
+
+# LangChain4j config lives at the top level (matches the @Value keys).
+# Use Ollama in tests: the bean builds without a network call and no API key
+# is required, so the Spring context loads for service-layer tests.
+langchain4j:
+  provider: ollama
+  ollama:
+    base-url: http://localhost:11434
+    model: llama3.1
+    temperature: 0.7
 
 logging:
   level:
     root: WARN
     com.agent.agenticcalendar: INFO
-

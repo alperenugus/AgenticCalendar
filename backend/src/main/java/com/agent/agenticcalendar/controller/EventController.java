@@ -2,7 +2,10 @@ package com.agent.agenticcalendar.controller;
 
 import com.agent.agenticcalendar.model.Event;
 import com.agent.agenticcalendar.repository.EventRepository;
+import com.agent.agenticcalendar.security.CurrentUser;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,38 +20,40 @@ public class EventController {
         this.eventRepository = eventRepository;
     }
 
+    /**
+     * Returns events for the authenticated user only. Ownership is derived from the
+     * session principal, never from a client-supplied query parameter.
+     */
     @GetMapping
-    public ResponseEntity<List<Event>> getAllEvents(
-            @RequestParam(required = false) String sessionId,
-            @RequestParam(required = false) String googleUserId) {
-        try {
-            List<Event> events;
-            if (googleUserId != null && !googleUserId.isEmpty()) {
-                events = eventRepository.findByGoogleUserId(googleUserId);
-            } else if (sessionId != null && !sessionId.isEmpty()) {
-                events = eventRepository.findBySessionId(sessionId);
-            } else {
-                events = eventRepository.findAll();
-            }
-            return ResponseEntity.ok(events);
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(List.of());
+    public ResponseEntity<List<Event>> getAllEvents(Authentication authentication) {
+        String ownerKey = CurrentUser.ownerKey(authentication);
+        if (ownerKey == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+        return ResponseEntity.ok(eventRepository.findByGoogleUserId(ownerKey));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Event> getEventById(@PathVariable Long id) {
+    public ResponseEntity<Event> getEventById(@PathVariable Long id, Authentication authentication) {
+        String ownerKey = CurrentUser.ownerKey(authentication);
+        if (ownerKey == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         return eventRepository.findById(id)
+                .filter(event -> ownerKey.equals(event.getGoogleUserId()))
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/count")
-    public ResponseEntity<EventCountResponse> getEventCount() {
-        long count = eventRepository.count();
+    public ResponseEntity<EventCountResponse> getEventCount(Authentication authentication) {
+        String ownerKey = CurrentUser.ownerKey(authentication);
+        if (ownerKey == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        long count = eventRepository.findByGoogleUserId(ownerKey).size();
         return ResponseEntity.ok(new EventCountResponse(count));
     }
 
     public record EventCountResponse(long count) {}
 }
-

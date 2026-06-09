@@ -83,6 +83,21 @@ server:
         secure: true
         http-only: true
 
+# Actuator: only expose the health endpoint (consumed by Railway healthcheck)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+# Market data (stock/index quotes). Yahoo Finance is keyless; an optional
+# Finnhub key (MARKET_FINNHUB_API_KEY) is used as a fallback for stock quotes.
+market:
+  finnhub-api-key: ${MARKET_FINNHUB_API_KEY:}
+
 # Rate Limiting Configuration
 rate-limit:
   # Per-session rate limits (using token bucket algorithm)
@@ -100,10 +115,11 @@ rate-limit:
     refill-period-seconds: ${RATE_LIMIT_HISTORY_PERIOD:60}
 
 # Logging
+# Defaults are INFO/WARN so full LLM prompts/responses (which contain calendar PII)
+# are not written to production logs. Override via env vars if deeper tracing is needed.
 logging:
   level:
-    com.agent.agenticcalendar: DEBUG
-    dev.langchain4j: DEBUG  # LangChain4j logging
-    dev.langchain4j.model.ollama: DEBUG  # Detailed Ollama logging
+    com.agent.agenticcalendar: ${LOG_LEVEL_APP:INFO}
+    dev.langchain4j: ${LOG_LEVEL_LANGCHAIN4J:WARN}  # WARN avoids dumping prompts/responses
     org.hibernate.SQL: WARN  # Disable SQL query logging
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import ChatComponent from './components/ChatComponent'
 import CalendarView from './components/CalendarView'
 import LoginScreen from './components/LoginScreen'
+import MarketTicker from './components/MarketTicker'
 import { Calendar, MessageSquare, LogOut, User } from 'lucide-react'
 import axios from 'axios'
 
@@ -91,7 +92,7 @@ function App() {
 
   // Show login screen if user is not authenticated
   if (!user) {
-    return <LoginScreen />
+    return <LoginScreen onAuthenticated={checkAuth} />
   }
 
   return (
@@ -125,6 +126,9 @@ function App() {
           </div>
         </div>
       </header>
+
+      {/* Live Markets Bar */}
+      <MarketTicker />
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-6 max-w-7xl">
