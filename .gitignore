@@ -49,3 +49,7 @@ frontend/dist/
 
 ### LinkedIn Documentation (excluded from deployment) ###
 LINKEDIN_*.md
+
+### QA screenshots
+prod-*.png
+page-*.png

@@ -298,7 +298,10 @@ public class AgentService {
         }
     }
 
-    private String buildSystemPrompt(LocalDateTime currentDateTime) {
+    // Package-private static so it can be unit-tested without the full Spring context.
+    // (Regression guard: literal '%' in this prompt must be escaped as '%%' because the
+    // text block is passed through String.format via .formatted().)
+    static String buildSystemPrompt(LocalDateTime currentDateTime) {
         // Format current date/time for the agent
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy");
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("h:mm a");
@@ -342,7 +345,7 @@ public class AgentService {
                 - Query calendar by date range
                 - Reschedule events
                 - Answer questions about the calendar
-                - Look up the latest real-time stock quotes for a ticker (price, change, % change, day range)
+                - Look up the latest real-time stock quotes for a ticker (price, change, percent change, day range)
                 - Give a snapshot of how the major US markets (S&P 500, Dow Jones, Nasdaq) are doing right now
 
                 ### HANDLING CASUAL GREETINGS AND IRRELEVANT MESSAGES:
@@ -386,7 +389,7 @@ public class AgentService {
                 - updateEvent(eventId, startTime?, endTime?, title?, description?, location?, status?): Update an existing event
                 - deleteEvent(eventId): Delete/cancel an event
                 - getUpcomingEvents(sessionId, googleUserId?): Get upcoming events
-                - getStockQuote(symbol): Get the latest real-time quote for a stock ticker. Convert company names to tickers (e.g. Apple -> AAPL, Tesla -> TSLA). Returns price, change, % change, day high/low.
+                - getStockQuote(symbol): Get the latest real-time quote for a stock ticker. Convert company names to tickers (e.g. Apple -> AAPL, Tesla -> TSLA). Returns price, change, percent change, day high/low.
                 - getMarketSummary(): Get the current levels of the major US indices (S&P 500, Dow Jones, Nasdaq). Takes NO parameters - use Action Input: {}
 
                 ### THE REACT PROTOCOL:
@@ -460,7 +463,7 @@ public class AgentService {
                 Action: getStockQuote
                 Action Input: {"symbol": "AAPL"}
                 Observation: {"symbol": "AAPL", "name": "Apple Inc.", "price": 290.55, "currency": "USD", "change": -16.79, "changePercent": -5.46, "dayHigh": 300.72, "dayLow": 287.78, "previousClose": 307.34, "asOf": "2025-06-09T20:00:01Z"}
-                Final Answer: Apple (AAPL) is trading at $290.55, down $16.79 (-5.46%) from its previous close of $307.34. Today's range has been $287.78 to $300.72.
+                Final Answer: Apple (AAPL) is trading at $290.55, down $16.79 (-5.46%%) from its previous close of $307.34. Today's range has been $287.78 to $300.72.
 
                 Example 6 (Market Overview):
                 User: "How's the market today?"
@@ -468,7 +471,7 @@ public class AgentService {
                 Action: getMarketSummary
                 Action Input: {}
                 Observation: {"indices": [{"symbol": "^GSPC", "name": "S&P 500", "price": 7386.65, "change": 12.3, "changePercent": 0.17, ...}], "message": "Latest US market index levels"}
-                Final Answer: Here's how the major US markets are doing: the S&P 500 is at 7,386.65 (+0.17%). [Summarize each index with its level and percent change in plain language.]
+                Final Answer: Here's how the major US markets are doing: the S&P 500 is at 7,386.65 (+0.17%%). [Summarize each index with its level and percent change in plain language.]
 
                 ### IMPORTANT FORMATTING:
                 - Always use the exact format: "Thought:", "Action:", "Action Input:", "Observation:", "Final Answer:"
