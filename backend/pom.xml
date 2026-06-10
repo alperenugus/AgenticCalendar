@@ -54,13 +54,11 @@
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 
-		<!-- LangChain4j Core -->
-		<dependency>
-			<groupId>dev.langchain4j</groupId>
-			<artifactId>langchain4j</artifactId>
-			<version>${langchain4j.version}</version>
-		</dependency>
-		
+		<!-- LangChain4j: the agent's ReAct loop is hand-rolled, so the core langchain4j
+		     artifact (AiServices / @Tool) and the spring-boot-starter are not needed.
+		     ChatLanguageModel resolves transitively from langchain4j-core via the
+		     model-client modules below. -->
+
 		<!-- LangChain4j Ollama Integration (for local development) -->
 		<dependency>
 			<groupId>dev.langchain4j</groupId>
@@ -75,13 +73,6 @@
 			<version>${langchain4j.version}</version>
 		</dependency>
 		
-		<!-- LangChain4j Spring Boot Starter (Optional - for auto-configuration) -->
-		<dependency>
-			<groupId>dev.langchain4j</groupId>
-			<artifactId>langchain4j-spring-boot-starter</artifactId>
-			<version>${langchain4j.version}</version>
-		</dependency>
-
 		<!-- PostgreSQL -->
 		<dependency>
 			<groupId>org.postgresql</groupId>
