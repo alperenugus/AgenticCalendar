@@ -48,6 +48,12 @@
 			<artifactId>spring-boot-starter-websocket</artifactId>
 		</dependency>
 
+		<!-- Actuator: exposes /actuator/health for the Railway healthcheck -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
 		<!-- LangChain4j Core -->
 		<dependency>
 			<groupId>dev.langchain4j</groupId>

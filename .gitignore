@@ -35,5 +35,21 @@ build/
 ### macOS ###
 .DS_Store
 
+### Node / frontend ###
+node_modules/
+frontend/dist/
+
+### Playwright MCP artifacts ###
+.playwright-mcp/
+
+### Local env / secrets ###
+.env
+.env.*
+*.local
+
 ### LinkedIn Documentation (excluded from deployment) ###
 LINKEDIN_*.md
+
+### QA screenshots
+prod-*.png
+page-*.png
