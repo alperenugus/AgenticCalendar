@@ -5,7 +5,6 @@ import com.agent.agenticcalendar.model.EventStatus;
 import com.agent.agenticcalendar.service.EventService;
 import com.agent.agenticcalendar.service.InputValidationService;
 import com.agent.agenticcalendar.util.RecurrenceParser;
-import dev.langchain4j.agent.tool.Tool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -14,6 +13,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Calendar operations exposed to the AI agent. These methods are dispatched by
+ * {@link com.agent.agenticcalendar.service.AgentService}'s hand-rolled ReAct loop
+ * (a manual {@code switch} on the parsed action name) — NOT by LangChain4j's native
+ * tool-calling. The LLM-facing tool descriptions are the single source of truth in the
+ * agent's system prompt; each method returns a compact JSON string for the agent to read.
+ */
 @Service
 public class CalendarToolService {
 
@@ -30,16 +36,11 @@ public class CalendarToolService {
         this.inputValidationService = inputValidationService;
     }
 
-    @Tool("Create a new calendar event. Use this when the user wants to schedule, book, or create a new event. " +
-          "Examples: 'meeting tomorrow at 2pm', 'lunch on Friday', 'call next Monday at 10am', 'weekly team meeting every Monday at 2pm'. " +
-          "Requires: title (event name), startTime (ISO format: yyyy-MM-ddTHH:mm:ss), " +
-          "endTime (ISO format), description (optional), location (optional), recurrenceRule (optional - for recurring events). " +
-          "The startTime and endTime should be converted from natural language " +
-          "(e.g., 'December 25, 2024 at 2 PM' → '2024-12-25T14:00:00'). " +
-          "If duration is provided instead of endTime, calculate endTime by adding duration to startTime. " +
-          "For recurring events, recurrenceRule can be natural language (e.g., 'weekly', 'daily', 'every Monday', 'monthly') " +
-          "or RFC 5545 RRULE format (e.g., 'FREQ=WEEKLY;BYDAY=MO'). If the user mentions recurrence (weekly, daily, monthly, etc.), " +
-          "you MUST extract it and pass it as recurrenceRule.")
+    /**
+     * Creates a calendar event. Times are ISO-8601 ({@code yyyy-MM-ddTHH:mm:ss});
+     * {@code recurrenceRule} accepts natural language ("weekly", "every Monday") or an
+     * RFC 5545 RRULE and is parsed by {@link RecurrenceParser}. Returns a JSON string.
+     */
     public String createEvent(String title, String startTime, String endTime, String description, String location, String recurrenceRule, String sessionId, String googleUserId, String googleUserEmail) {
         log.info("🔵 createEvent CALLED with title={}, startTime={}, endTime={}, recurrenceRule={}, sessionId={}", 
                 title, startTime, endTime, recurrenceRule, sessionId);
@@ -92,8 +93,7 @@ public class CalendarToolService {
         }
     }
 
-    @Tool("Get all events for a session. Use this to retrieve all events for the current user's calendar. " +
-          "Returns a list of all events including event IDs, titles, dates/times, and descriptions.")
+    /** Returns all active (non-cancelled) events for the user/session as a JSON string. */
     public String getEvents(String sessionId, String googleUserId) {
         log.info("🔵 getEvents CALLED with sessionId={}, googleUserId={}", sessionId, googleUserId);
         try {
@@ -131,10 +131,10 @@ public class CalendarToolService {
         }
     }
 
-    @Tool("Get events within a date range. Use this when the user asks about events in a specific time period. " +
-          "Examples: 'what's on my calendar next week?', 'show me events this month'. " +
-          "Requires: sessionId, startDate (ISO format: yyyy-MM-ddTHH:mm:ss), " +
-          "endDate (ISO format), googleUserId (optional).")
+    /**
+     * Returns events overlapping [startDate, endDate] (ISO-8601), with recurring events
+     * expanded into individual occurrences. Returns a JSON string.
+     */
     public String getEventsByDateRange(String sessionId, String startDate, String endDate, String googleUserId) {
         log.info("🔵 getEventsByDateRange CALLED with sessionId={}, startDate={}, endDate={}", 
                 sessionId, startDate, endDate);
@@ -175,8 +175,7 @@ public class CalendarToolService {
         }
     }
 
-    @Tool("Get a specific event by ID. Use this to retrieve details of a particular event. " +
-          "Requires: eventId (numeric).")
+    /** Returns the details of a single event by id as a JSON string. */
     public String getEvent(Long eventId) {
         log.info("🔵 getEvent CALLED with eventId={}", eventId);
         try {
@@ -201,9 +200,7 @@ public class CalendarToolService {
         }
     }
 
-    @Tool("Check for scheduling conflicts. Use this before creating or updating an event to ensure there are no overlapping events. " +
-          "Returns a list of conflicting events if any exist. " +
-          "Requires: sessionId, startTime (ISO format), endTime (ISO format), googleUserId (optional).")
+    /** Returns events that overlap [startTime, endTime] (recurring events expanded) as a JSON string. */
     public String checkConflicts(String sessionId, String startTime, String endTime, String googleUserId) {
         log.info("🔵 checkConflicts CALLED with sessionId={}, startTime={}, endTime={}", sessionId, startTime, endTime);
         try {
@@ -242,10 +239,10 @@ public class CalendarToolService {
         }
     }
 
-    @Tool("Update an existing event. Use this when the user wants to change, reschedule, modify, or move an event. " +
-          "Keywords: 'change', 'reschedule', 'update', 'modify', 'move'. " +
-          "All parameters except eventId are optional - only provide the fields that need to be updated. " +
-          "Requires: eventId (numeric), and optionally: startTime, endTime, title, description, location, status.")
+    /**
+     * Updates an event. Only non-null fields are changed; the rest are left as-is.
+     * Returns a JSON string.
+     */
     public String updateEvent(Long eventId, String startTime, String endTime, String title, String description, String location, String status) {
         log.info("🔵 updateEvent CALLED with eventId={}, startTime={}, endTime={}, title={}", 
                 eventId, startTime, endTime, title);
@@ -276,9 +273,7 @@ public class CalendarToolService {
         }
     }
 
-    @Tool("Delete (cancel) an event permanently. Use this when the user explicitly wants to cancel, delete, or remove an event. " +
-          "Keywords: 'cancel', 'delete', 'remove'. " +
-          "Requires: eventId (numeric).")
+    /** Permanently deletes an event by id. Returns a JSON string. */
     public String deleteEvent(Long eventId) {
         log.info("🔵 deleteEvent CALLED with eventId={}", eventId);
         try {
@@ -295,9 +290,7 @@ public class CalendarToolService {
         }
     }
 
-    @Tool("Get upcoming events. Use this when the user asks 'what's next?', 'upcoming events', 'what do I have coming up?'. " +
-          "Returns events ordered by start time. " +
-          "Requires: sessionId, googleUserId (optional).")
+    /** Returns up to 10 upcoming events ordered by start time as a JSON string. */
     public String getUpcomingEvents(String sessionId, String googleUserId) {
         log.info("🔵 getUpcomingEvents CALLED with sessionId={}, googleUserId={}", sessionId, googleUserId);
         try {
