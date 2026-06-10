@@ -67,10 +67,12 @@ function App() {
   const handleLogout = async () => {
     try {
       await axios.post(`${API_BASE_URL.replace('/api', '')}/logout`, {}, { withCredentials: true })
-      setUser(null)
-      window.location.reload()
     } catch (error) {
       console.error('Logout failed:', error)
+    } finally {
+      // Drop the chat session so the next user on this browser starts fresh
+      // (conversation history is keyed by this id, not by account).
+      localStorage.removeItem('chatSessionId')
       setUser(null)
       window.location.reload()
     }
@@ -91,7 +93,7 @@ function App() {
 
   // Show login screen if user is not authenticated
   if (!user) {
-    return <LoginScreen />
+    return <LoginScreen onAuthenticated={checkAuth} />
   }
 
   return (

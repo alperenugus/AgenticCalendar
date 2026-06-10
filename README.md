@@ -14,7 +14,7 @@ An intelligent **AI-powered calendar assistant** that works like Google Calendar
 - 🤖 **AI Assistant**: Natural language calendar management (schedule, reschedule, query)
 - 📅 **Google Calendar-like UI**: Beautiful month/week/day views with event visualization
 - 🔄 **Recurring Events**: Full support for daily, weekly, monthly, and custom recurrence patterns
-- 🔐 **Google OAuth**: Secure authentication with Google Sign-In
+- 🔐 **Two sign-in methods**: Google OAuth **and** username/password — with proper per-user data isolation
 - ⚡ **Real-time Updates**: WebSocket-powered live thinking and tool execution
 - 🛡️ **Rate Limiting**: Industry-standard token bucket algorithm to prevent abuse
 
@@ -213,14 +213,14 @@ Recurring events are automatically expanded and displayed on all applicable days
 - **Event Colors**: Customizable event colors
 - **Real-time Updates**: Auto-refreshes every 10 seconds
 
-## 🔐 Authentication
+## 🔐 Authentication & data isolation
 
-The application uses **Google OAuth2** for authentication:
+Two sign-in methods, one session model:
 
-1. Users sign in with their Google account
-2. Events are associated with their Google User ID
-3. Session-based fallback for non-authenticated users
-4. Secure cookie-based session management
+1. **Google OAuth2** — sign in with Google.
+2. **Username/password** — register/sign in with email + password (BCrypt-hashed).
+
+**Identity is always derived server-side from the authenticated session** (never from a client-supplied id). Each user's calendar is scoped to their own owner key (Google `sub` or `local-<id>`), so users only ever see their own data. All `/api/**` routes require authentication except the public ones (`/api/auth/**`, `/actuator/health`, `/ws`, `/oauth2`, `/login`).
 
 ### Setting up Google OAuth
 
@@ -232,65 +232,72 @@ The application uses **Google OAuth2** for authentication:
 ## 📡 API Endpoints
 
 ### Agent Endpoints
+- **POST** `/api/agent/chat` - Send natural language requests _(authenticated; identity from session)_
+- **GET** `/api/agent/history` - Get conversation history _(authenticated)_
 
-- **POST** `/api/agent/chat` - Send natural language requests
-- **GET** `/api/agent/history` - Get conversation history
-
-### Event Endpoints
-
-- **GET** `/api/events` - Get all events (supports `?sessionId=` or `?googleUserId=`)
-- **GET** `/api/events/{id}` - Get specific event
-- **GET** `/api/events/count` - Get event count
+### Event Endpoints _(all authenticated; scoped to the current user)_
+- **GET** `/api/events` - Get the current user's events
+- **GET** `/api/events/{id}` - Get a specific event (404 if not yours)
+- **GET** `/api/events/count` - Count of the current user's events
 
 ### Auth Endpoints
-
-- **GET** `/api/auth/user` - Get current authenticated user
+- **GET** `/api/auth/user` - Get current authenticated user (Google or local)
+- **POST** `/api/auth/register` - Create a username/password account `{email, password, name}`
+- **POST** `/api/auth/login` - Sign in with username/password `{email, password}`
 - **GET** `/oauth2/authorization/google` - Initiate Google login
 - **POST** `/logout` - Logout
+
+### Ops
+- **GET** `/actuator/health` - Health check (used by Railway)
 
 ## 🏛️ Project Structure
 
 ```
 AgenticCalendar/
 ├── backend/                                          # Spring Boot backend
-│   ├── src/main/java/com/agent/appointmentscheduler/
-│   │   ├── AppointmentschedulerApplication.java
+│   ├── src/main/java/com/agent/agenticcalendar/
+│   │   ├── AgenticCalendarApplication.java
 │   │   ├── config/
-│   │   │   ├── SecurityConfig.java                  # OAuth2 & CORS
-│   │   │   ├── OAuth2Config.java                   # OAuth redirect URI fix
-│   │   │   ├── LangChain4jConfig.java              # LLM configuration
-│   │   │   └── WebSocketConfig.java                # WebSocket setup
+│   │   │   ├── SecurityConfig.java                  # OAuth2 + form login, /api/** lockdown, CORS
+│   │   │   ├── OAuth2Config.java                    # OAuth redirect URI fix (Railway proxy)
+│   │   │   ├── LangChain4jConfig.java               # LLM (Groq/Ollama) configuration
+│   │   │   └── WebSocketConfig.java                 # WebSocket setup
 │   │   ├── controller/
-│   │   │   ├── AgentController.java                 # Agent chat endpoint
-│   │   │   ├── EventController.java                 # Event CRUD
-│   │   │   └── AuthController.java                  # OAuth endpoints
+│   │   │   ├── AgentController.java                 # Agent chat (identity from session)
+│   │   │   ├── EventController.java                 # Per-user event reads
+│   │   │   └── AuthController.java                  # Google + username/password auth
 │   │   ├── model/
 │   │   │   ├── Event.java                           # Calendar event entity
-│   │   │   ├── EventType.java                       # Event type enum
-│   │   │   └── EventStatus.java                     # Event status enum
-│   │   ├── repository/
-│   │   │   └── EventRepository.java                 # Event queries
+│   │   │   ├── LocalAccount.java                    # Username/password account (BCrypt)
+│   │   │   ├── EventType.java / EventStatus.java    # Enums
+│   │   ├── repository/                              # Event + LocalAccount repositories
+│   │   ├── security/
+│   │   │   ├── CurrentUser.java                     # Server-derived owner key (sub / local-<id>)
+│   │   │   ├── LocalUserPrincipal.java              # UserDetails for local accounts
+│   │   │   └── LocalUserDetailsService.java
 │   │   ├── service/
-│   │   │   ├── AgentService.java                    # ReAct pattern implementation
-│   │   │   ├── EventService.java                    # Event business logic
+│   │   │   ├── AgentService.java                    # Custom text-based ReAct loop
+│   │   │   ├── EventService.java                    # Event business logic + recurrence
 │   │   │   └── RateLimitService.java                # Rate limiting
 │   │   ├── tools/
-│   │   │   └── CalendarToolService.java             # LangChain4j tools
-│   │   └── util/
-│   │       └── RecurrenceParser.java                # RRULE parsing
+│   │   │   └── CalendarToolService.java             # Calendar tools
+│   │   └── util/                                    # RecurrenceParser/Expander, DateParser, ReActParser
 │   └── pom.xml
 ├── frontend/                                        # React frontend
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── ChatComponent.jsx                    # AI chat interface
-│   │   │   ├── CalendarView.jsx                    # Google Calendar-like UI
-│   │   │   └── LoginScreen.jsx                      # OAuth login screen
-│   │   ├── utils/
-│   │   │   └── recurrenceExpander.js                # Expand recurring events
+│   │   │   ├── CalendarView.jsx                     # Google Calendar-like UI
+│   │   │   └── LoginScreen.jsx                      # Google + email/password login
+│   │   ├── utils/recurrenceExpander.js              # Expand recurring events (client side)
 │   │   └── App.jsx
 │   └── package.json
+├── CLAUDE.md                                         # Build/deploy/test playbook (Railway CLI)
+├── EVALUATION_REPORT.md                              # Code-review findings + backlog
 └── README.md
 ```
+
+> **Note:** the files under `backend/src/main/resources/db/migration/` are inert — Flyway is not a dependency, so the schema is managed by Hibernate `ddl-auto=update`. See `EVALUATION_REPORT.md`.
 
 ## 🧪 Example Interactions
 
@@ -325,14 +332,14 @@ Agent: "I've rescheduled your meeting to Friday, February 21, 2026 at 2:00 PM."
 
 ### Railway Deployment
 
-See `DEPLOYMENT_SETUP.md` for detailed Railway deployment instructions.
+Two services (`AgenticCalendarBackend` via Dockerfile, `AgenticCalendarFrontend` via Nixpacks) + Postgres, auto-deployed from GitHub `main`. The full build/deploy/verify workflow — including the Railway-CLI commands and the frontend `railway.json` gotcha — is documented in **`CLAUDE.md`**. Production testing is done against the live URL with Playwright (see `CLAUDE.md`).
 
 **Quick Setup:**
-1. Connect GitHub repository to Railway
-2. Create backend and frontend services
-3. Set environment variables (see `DEPLOYMENT_SETUP.md`)
-4. Configure Google OAuth redirect URIs
-5. Deploy!
+1. Connect the GitHub repository to Railway (or deploy with `railway up`).
+2. Create backend, frontend, and Postgres services.
+3. Set environment variables (`LANGCHAIN4J_GROQ_API_KEY`, `GOOGLE_CLIENT_ID/SECRET`, `GOOGLE_REDIRECT_URI`, `FRONTEND_URL`).
+4. Configure the Google OAuth redirect URI.
+5. Deploy and verify `/actuator/health`.
 
 ## 📝 License
 

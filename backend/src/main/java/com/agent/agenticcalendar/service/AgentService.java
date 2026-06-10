@@ -276,7 +276,7 @@ public class AgentService {
                     
                 case "getUpcomingEvents":
                     return toolService.getUpcomingEvents(sessionId, googleUserId);
-                    
+
                 default:
                     return "{\"error\": \"Unknown tool: " + toolName + "\"}";
             }
@@ -286,7 +286,10 @@ public class AgentService {
         }
     }
 
-    private String buildSystemPrompt(LocalDateTime currentDateTime) {
+    // Package-private static so it can be unit-tested without the full Spring context.
+    // (Regression guard: literal '%' in this prompt must be escaped as '%%' because the
+    // text block is passed through String.format via .formatted().)
+    static String buildSystemPrompt(LocalDateTime currentDateTime) {
         // Format current date/time for the agent
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy");
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("h:mm a");
@@ -341,7 +344,7 @@ public class AgentService {
                 - User: "Hello" or "Hi" → Final Answer: "Hello! I'm your AI calendar assistant. I can help you schedule meetings, check your calendar, find free time, and manage your events. What would you like to do?"
                 - User: "How are you?" → Final Answer: "I'm doing well, thank you! I'm here to help you manage your calendar. How can I assist you today?"
                 - User: "What can you do?" → Final Answer: "I can help you manage your calendar! For example, I can schedule meetings, check your upcoming events, find free time, reschedule events, and answer questions about your schedule. What would you like to do?"
-                
+
                 **For completely irrelevant messages** (e.g., "tell me a joke", "what's the weather", "who won the game"):
                 - Final Answer: "I'm a calendar assistant, so I can only help with calendar management. I can help you schedule meetings, check your calendar, find free time, and manage your events. How can I assist you with your calendar?"
                 
